@@ -73,6 +73,18 @@ function ProjectsIndex() {
     },
   });
 
+  const updateNoMut = useMutation({
+    mutationFn: async ({ id, project_no }: { id: string; project_no: number | null }) => {
+      const { error } = await supabase.from("projects").update({ project_no } as any).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("تم تحديث رقم المشروع");
+      qc.invalidateQueries({ queryKey: ["projects"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const delMut = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("projects").delete().eq("id", id);
