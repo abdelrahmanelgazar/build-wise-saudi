@@ -324,6 +324,7 @@ function NewProjectDialog() {
         .from("projects")
         .insert({
           user_id,
+          project_no: form.project_no.trim() === "" ? null : Number(form.project_no),
           name: form.name.trim(),
           code: form.code.trim() || null,
           client_name: form.client.trim() || null,
