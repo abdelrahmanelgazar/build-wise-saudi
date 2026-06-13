@@ -349,12 +349,30 @@ function BoqReport() {
 /* ============== 3) RESOURCES REPORT ============== */
 function ResourcesReport() {
   const [type, setType] = useState<"all" | "material" | "labor" | "equipment">("all");
+  const [projectId, setProjectId] = useState<string>("");
 
-  const { data: resources = [], isLoading } = useQuery({
-    queryKey: ["report-resources"],
+  const { data: projects = [] } = useQuery({
+    queryKey: ["report-resources-projects-list"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("resources").select("*").order("type").order("code", { ascending: true });
+        .from("projects").select("id,name,project_no")
+        .order("project_no", { ascending: false });
+      if (error) throw error;
+      return data as Array<Pick<Project, "id" | "name" | "project_no">>;
+    },
+  });
+
+  useEffect(() => {
+    if (!projectId && projects.length > 0) setProjectId(projects[0].id);
+  }, [projectId, projects]);
+
+  const { data: resources = [], isLoading } = useQuery({
+    queryKey: ["report-resources", projectId],
+    enabled: !!projectId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("resources").select("*").eq("project_id", projectId)
+        .order("type").order("code", { ascending: true });
       if (error) throw error;
       return data as Resource[];
     },
@@ -388,6 +406,16 @@ function ResourcesReport() {
       <Toolbar title="تقرير الموارد" onExcel={exportExcel} />
 
       <div className="mb-3 flex flex-wrap items-center gap-3 print:hidden">
+        <Select value={projectId} onValueChange={setProjectId}>
+          <SelectTrigger className="h-9 w-80"><SelectValue placeholder="اختر مشروعاً…" /></SelectTrigger>
+          <SelectContent>
+            {projects.map((p) => (
+              <SelectItem key={p.id} value={p.id}>
+                {p.project_no ? `#${p.project_no} — ` : ""}{p.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Select value={type} onValueChange={(v) => setType(v as typeof type)}>
           <SelectTrigger className="h-9 w-48"><SelectValue /></SelectTrigger>
           <SelectContent>
