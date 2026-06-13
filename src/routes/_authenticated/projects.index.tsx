@@ -165,9 +165,12 @@ function ProjectsIndex() {
                 <td className="px-4 py-3 text-muted-foreground">{p.client_name || "—"}</td>
                 <td className="px-4 py-3 text-muted-foreground">{p.location || "—"}</td>
                 <td className="px-4 py-3">
-                  <Badge variant="outline" className={STATUS_META[p.status].cls}>
-                    {STATUS_META[p.status].label}
-                  </Badge>
+                  {(() => {
+                    const m = STATUS_META[p.status as Status] ?? { label: p.status ?? "—", cls: "bg-muted/60 text-muted-foreground border-border/60" };
+                    return (
+                      <Badge variant="outline" className={m.cls}>{m.label}</Badge>
+                    );
+                  })()}
                 </td>
                 <td className="px-4 py-3 tabular-nums">{fmtSAR(Number(p.estimated_value ?? 0))}</td>
                 <td className="px-4 py-3 text-muted-foreground">{p.submission_date || "—"}</td>
