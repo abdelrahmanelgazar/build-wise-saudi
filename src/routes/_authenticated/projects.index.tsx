@@ -258,6 +258,40 @@ function ProjectsIndex() {
   );
 }
 
+function NoEditor({ value, onSave }: { value: number | null | undefined; onSave: (v: number | null) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [val, setVal] = useState(value != null ? String(value) : "");
+  if (!editing) {
+    return (
+      <button
+        onClick={(e) => { e.stopPropagation(); setVal(value != null ? String(value) : ""); setEditing(true); }}
+        className="tabular-nums text-muted-foreground hover:text-primary hover:underline"
+        title="انقر للتعديل"
+      >
+        {value ?? "—"}
+      </button>
+    );
+  }
+  return (
+    <Input
+      type="number"
+      autoFocus
+      value={val}
+      onChange={(e) => setVal(e.target.value)}
+      onBlur={() => {
+        setEditing(false);
+        const n = val.trim() === "" ? null : Number(val);
+        if (n !== (value ?? null)) onSave(n);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+        if (e.key === "Escape") { setVal(value != null ? String(value) : ""); setEditing(false); }
+      }}
+      className="h-7 w-20 text-xs"
+    />
+  );
+}
+
 function NewProjectDialog() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
