@@ -40,7 +40,7 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 
 const STATUS_META: Record<Status, { label: string; color: string }> = {
   studying: { label: "قيد الدراسة", color: "#94a3b8" },
-  submitted_to_medial_man: { label: "مُرسل للوسيط", color: "#f59e0b" },
+  submitted_to_medial_man: { label: "مُرسل للوسيط (GM)", color: "#f59e0b" },
   submitted_to_client: { label: "مُرسل للعميل", color: "#3b82f6" },
   waiting_for_reply: { label: "بانتظار الرد", color: "#eab308" },
   inquiries_sent: { label: "استفسارات", color: "#06b6d4" },
