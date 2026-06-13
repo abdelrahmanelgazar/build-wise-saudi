@@ -37,6 +37,7 @@ import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
+import { useActiveProjectId } from "@/lib/active-project";
 
 type BoqRow = Database["public"]["Tables"]["boq_items"]["Row"];
 
