@@ -48,13 +48,16 @@ function ResourcesPage() {
   const [tab, setTab] = useState<ResourceType>("material");
   const [search, setSearch] = useState("");
   const qc = useQueryClient();
+  const projectId = useActiveProjectId();
 
   const { data: resources = [], isLoading } = useQuery({
-    queryKey: ["resources"],
+    queryKey: ["resources", projectId],
+    enabled: !!projectId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("resources")
         .select("*")
+        .eq("project_id", projectId!)
         .order("code", { ascending: true });
       if (error) throw error;
       return data as ResourceRow[];
