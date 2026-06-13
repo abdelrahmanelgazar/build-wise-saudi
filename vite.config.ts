@@ -11,5 +11,15 @@ export default defineConfig({
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
     server: { entry: "server" },
+    // Use static preset for GitHub Pages deployment
+    routers: {
+      public: {
+        base: "/build-wise-saudi/",
+      },
+    },
+  },
+  vite: {
+    // Base path for GitHub Pages: https://username.github.io/build-wise-saudi/
+    base: "/build-wise-saudi/",
   },
 });

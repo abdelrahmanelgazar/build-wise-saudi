@@ -1,12 +1,14 @@
 {
   "name": "tanstack_start_ts",
   "private": true,
+  "homepage": "https://abdelrahmanelgazar.github.io/build-wise-saudi",
   "sideEffects": false,
   "type": "module",
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
     "build:dev": "vite build --mode development",
+    "build:static": "NITRO_PRESET=static vite build",
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write ."
