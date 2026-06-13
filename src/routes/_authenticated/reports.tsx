@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -227,6 +227,10 @@ function BoqReport() {
     },
   });
 
+  useEffect(() => {
+    if (!projectId && projects.length > 0) setProjectId(projects[0].id);
+  }, [projectId, projects]);
+
   const { data: items = [], isLoading } = useQuery({
     queryKey: ["report-boq", projectId],
     enabled: !!projectId,
@@ -449,6 +453,10 @@ function ExecutiveSummary() {
       return data as Project[];
     },
   });
+
+  useEffect(() => {
+    if (!projectId && projects.length > 0) setProjectId(projects[0].id);
+  }, [projectId, projects]);
 
   const project = projects.find((p) => p.id === projectId);
 
