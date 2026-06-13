@@ -253,12 +253,14 @@ function ResourceFormDialog({
   const [unit, setUnit] = useState(resource?.unit ?? "");
   const [price, setPrice] = useState<string>(String(resource?.unit_price ?? ""));
   const qc = useQueryClient();
+  const projectId = useActiveProjectId();
 
   const mut = useMutation({
     mutationFn: async () => {
       const { data: userData } = await supabase.auth.getUser();
       const user_id = userData.user?.id;
       if (!user_id) throw new Error("غير مسجل دخول");
+      if (!projectId) throw new Error("اختر مشروعاً أولاً");
       const payload = {
         type,
         code: code || null,
@@ -270,7 +272,7 @@ function ResourceFormDialog({
         const { error } = await supabase.from("resources").update(payload).eq("id", resource.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("resources").insert({ ...payload, user_id });
+        const { error } = await supabase.from("resources").insert({ ...payload, user_id, project_id: projectId });
         if (error) throw error;
       }
     },
