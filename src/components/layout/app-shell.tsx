@@ -95,7 +95,13 @@ function ProjectSwitcher() {
               key={p.id}
               onClick={() => {
                 setActiveProjectId(p.id);
-                qc.invalidateQueries({ queryKey: ["active-project-data"] });
+                // Invalidate all project-scoped queries
+                qc.invalidateQueries({ queryKey: ["boq_items"] });
+                qc.invalidateQueries({ queryKey: ["resources"] });
+                qc.invalidateQueries({ queryKey: ["pa_items"] });
+                qc.invalidateQueries({ queryKey: ["pa_markup"] });
+                qc.invalidateQueries({ queryKey: ["dashboard-resources-count"] });
+                qc.invalidateQueries({ queryKey: ["dashboard-boq-count"] });
                 setOpen(false);
               }}
               className={cn(
