@@ -57,6 +57,8 @@ const WON_STATUSES: Status[] = ["construction_ongoing", "construction_complete",
 const LOST_STATUSES: Status[] = ["client_rejected"];
 
 function DashboardPage() {
+  const activeProjectId = useActiveProjectId();
+
   const { data: projects = [], isLoading } = useQuery({
     queryKey: ["dashboard-projects"],
     queryFn: async () => {
@@ -70,22 +72,27 @@ function DashboardPage() {
   });
 
   const { data: resourcesCount = 0 } = useQuery({
-    queryKey: ["dashboard-resources-count"],
+    queryKey: ["dashboard-resources-count", activeProjectId],
+    enabled: !!activeProjectId,
     queryFn: async () => {
       const { count, error } = await supabase
         .from("resources")
-        .select("*", { count: "exact", head: true });
+        .select("*", { count: "exact", head: true })
+        .eq("project_id", activeProjectId!);
       if (error) throw error;
       return count ?? 0;
     },
   });
 
   const { data: boqCount = 0 } = useQuery({
-    queryKey: ["dashboard-boq-count"],
+    queryKey: ["dashboard-boq-count", activeProjectId],
+    enabled: !!activeProjectId,
     queryFn: async () => {
       const { count, error } = await supabase
         .from("boq_items")
-        .select("*", { count: "exact", head: true });
+        .select("*", { count: "exact", head: true })
+        .eq("project_id", activeProjectId!)
+        .eq("is_group", false);
       if (error) throw error;
       return count ?? 0;
     },
