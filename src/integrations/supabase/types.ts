@@ -390,11 +390,18 @@ export type Database = {
     Enums: {
       app_role: "admin" | "estimation_manager" | "estimator" | "viewer"
       project_status:
-        | "draft"
-        | "in_progress"
-        | "awarded"
-        | "rejected"
-        | "completed"
+        | "studying"
+        | "submitted_to_medial_man"
+        | "submitted_to_client"
+        | "waiting_for_reply"
+        | "inquiries_sent"
+        | "answers_received"
+        | "on_hold"
+        | "client_rejected"
+        | "construction_ongoing"
+        | "construction_complete"
+        | "finished"
+        | "closed"
       resource_type: "material" | "labor" | "equipment"
     }
     CompositeTypes: {
@@ -525,11 +532,18 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "estimation_manager", "estimator", "viewer"],
       project_status: [
-        "draft",
-        "in_progress",
-        "awarded",
-        "rejected",
-        "completed",
+        "studying",
+        "submitted_to_medial_man",
+        "submitted_to_client",
+        "waiting_for_reply",
+        "inquiries_sent",
+        "answers_received",
+        "on_hold",
+        "client_rejected",
+        "construction_ongoing",
+        "construction_complete",
+        "finished",
+        "closed",
       ],
       resource_type: ["material", "labor", "equipment"],
     },
