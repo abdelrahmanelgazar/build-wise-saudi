@@ -313,6 +313,7 @@ function MarkupInput({
   markup: Markup | null | undefined;
 }) {
   const qc = useQueryClient();
+  const projectId = useActiveProjectId();
   const mut = useMutation({
     mutationFn: async (newPct: number) => {
       const { data: userData } = await supabase.auth.getUser();
@@ -329,6 +330,7 @@ function MarkupInput({
         const { error } = await supabase.from("price_analysis_markup").insert({
           boq_item_id: boqItemId,
           user_id,
+          project_id: projectId,
           indirect_pct: field === "indirect_pct" ? newPct : 5,
           overhead_pct: field === "overhead_pct" ? newPct : 8,
           risk_pct: field === "risk_pct" ? newPct : 3,
