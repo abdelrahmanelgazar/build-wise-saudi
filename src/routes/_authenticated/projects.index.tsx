@@ -176,14 +176,14 @@ function ProjectsIndex() {
           <tbody className="divide-y divide-border">
             {isLoading && (
               <tr>
-                <td colSpan={15} className="px-4 py-8 text-center text-muted-foreground">
+                <td colSpan={16} className="px-4 py-8 text-center text-muted-foreground">
                   جاري التحميل…
                 </td>
               </tr>
             )}
             {!isLoading && filtered.length === 0 && (
               <tr>
-                <td colSpan={15} className="px-4 py-12 text-center text-muted-foreground">
+                <td colSpan={16} className="px-4 py-12 text-center text-muted-foreground">
                   <FolderPlus className="mx-auto mb-2 h-8 w-8 opacity-40" />
                   <div>لا توجد مشاريع — أضف مشروعك الأول للبدء</div>
                 </td>
