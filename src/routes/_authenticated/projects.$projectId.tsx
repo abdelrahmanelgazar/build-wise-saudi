@@ -314,11 +314,8 @@ function ProjectInfoForm({ project }: { project: Project }) {
         <Field label="تاريخ التسليم">
           <Input type="date" value={form.submission_date} onChange={(e) => setForm({ ...form, submission_date: e.target.value })} />
         </Field>
-        <Field label="تاريخ البداية">
-          <Input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} />
-        </Field>
-        <Field label="تاريخ النهاية">
-          <Input type="date" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} />
+        <Field label="مدة المشروع">
+          <Input value={form.duration} onChange={(e) => setForm({ ...form, duration: e.target.value })} placeholder="مثال: 12 شهر" />
         </Field>
       </div>
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
