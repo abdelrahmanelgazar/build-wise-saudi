@@ -161,7 +161,13 @@ function DashboardPage() {
         <KpiCard icon={Building2} label="إجمالي المشاريع" value={fmtNumber(stats.total, 0)} hint={`${stats.active} نشطة`} color="text-primary" />
         <KpiCard icon={Wallet} label="إجمالي القيمة التقديرية" value={fmtSAR(stats.totalValue)} hint={`الميزانية: ${fmtSAR(stats.totalBudget)}`} color="text-emerald-500" />
         <KpiCard icon={TrendingUp} label="نسبة الفوز" value={`${stats.winRate.toFixed(1)}%`} hint={`${stats.won} فائز / ${stats.lost} خاسر`} color="text-blue-500" />
-        <KpiCard icon={CheckCircle2} label="بيانات المكتبة" value={fmtNumber(resourcesCount, 0)} hint={`${boqCount} بند كميات`} color="text-violet-500" />
+        <KpiCard
+          icon={CheckCircle2}
+          label={activeProjectId ? "موارد المشروع النشط" : "موارد المشروع"}
+          value={activeProjectId ? fmtNumber(resourcesCount, 0) : "—"}
+          hint={activeProjectId ? `${boqCount} بند كميات` : "اختر مشروعاً لعرض الأرقام"}
+          color="text-violet-500"
+        />
       </div>
 
       {/* Charts */}
