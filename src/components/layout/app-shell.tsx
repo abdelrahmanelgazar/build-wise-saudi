@@ -13,14 +13,19 @@ import {
   LogOut,
   Search,
   Building2,
+  Check,
+  ChevronsUpDown,
+  FolderKanban,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useActiveProjectId, setActiveProjectId } from "@/lib/active-project";
 
 type NavItem = {
   to: string;
@@ -31,7 +36,7 @@ type NavItem = {
 
 const NAV: NavItem[] = [
   { to: "/dashboard", label: "لوحة التحكم", icon: LayoutDashboard, enabled: false },
-  { to: "/tenders", label: "المشاريع", icon: FileText, enabled: false },
+  { to: "/projects", label: "المشاريع", icon: FileText, enabled: true },
   { to: "/boq", label: "جدول الكميات", icon: Calculator, enabled: true },
   { to: "/price-analysis", label: "تحليل الأسعار", icon: TrendingUp, enabled: true },
   { to: "/resources", label: "مكتبة البيانات", icon: Database, enabled: true },
@@ -40,6 +45,87 @@ const NAV: NavItem[] = [
   { to: "/ai-assistant", label: "مساعد الذكاء الاصطناعي", icon: Sparkles, enabled: false },
   { to: "/settings", label: "الإعدادات والصلاحيات", icon: Settings, enabled: false },
 ];
+
+function ProjectSwitcher() {
+  const [open, setOpen] = useState(false);
+  const activeId = useActiveProjectId();
+  const qc = useQueryClient();
+  const { data: projects = [] } = useQuery({
+    queryKey: ["projects"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("projects")
+        .select("id, name, client_name")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as { id: string; name: string; client_name: string | null }[];
+    },
+  });
+
+  // Auto-pick first project on first load
+  useEffect(() => {
+    if (!activeId && projects.length > 0) setActiveProjectId(projects[0].id);
+  }, [activeId, projects]);
+
+  const active = projects.find((p) => p.id === activeId);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          className="h-9 w-full justify-between gap-2 px-3 text-right"
+        >
+          <FolderKanban className="h-3.5 w-3.5 text-primary shrink-0" />
+          <span className="flex-1 truncate text-xs font-medium">
+            {active?.name ?? (projects.length === 0 ? "أنشئ مشروعاً" : "اختر مشروعاً")}
+          </span>
+          <ChevronsUpDown className="h-3 w-3 text-muted-foreground shrink-0" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-64 p-1" align="start">
+        <div className="max-h-72 overflow-auto">
+          {projects.length === 0 && (
+            <div className="p-3 text-center text-xs text-muted-foreground">
+              لا توجد مشاريع بعد
+            </div>
+          )}
+          {projects.map((p) => (
+            <button
+              key={p.id}
+              onClick={() => {
+                setActiveProjectId(p.id);
+                qc.invalidateQueries();
+                setOpen(false);
+              }}
+              className={cn(
+                "flex w-full items-start justify-between gap-2 rounded-md px-2.5 py-2 text-right text-xs hover:bg-accent",
+                p.id === activeId && "bg-primary/10 text-primary",
+              )}
+            >
+              <div className="min-w-0 flex-1">
+                <div className="truncate font-medium">{p.name}</div>
+                {p.client_name && (
+                  <div className="truncate text-[10px] text-muted-foreground">{p.client_name}</div>
+                )}
+              </div>
+              {p.id === activeId && <Check className="h-3.5 w-3.5 shrink-0" />}
+            </button>
+          ))}
+        </div>
+        <div className="mt-1 border-t border-border pt-1">
+          <Link
+            to="/projects"
+            onClick={() => setOpen(false)}
+            className="block rounded-md px-2.5 py-2 text-center text-xs text-primary hover:bg-accent"
+          >
+            إدارة كل المشاريع ←
+          </Link>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
