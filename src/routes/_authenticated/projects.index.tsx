@@ -218,6 +218,7 @@ function ProjectsIndex() {
                   <td className="px-3 py-3 text-muted-foreground">{p.tender_entry_date || "—"}</td>
                   <td className="px-3 py-3 text-muted-foreground">{p.last_submit_date || p.submission_date || "—"}</td>
                   <td className="px-3 py-3 text-muted-foreground">{p.last_rfi_date || "—"}</td>
+                  <td className="px-3 py-3 text-muted-foreground">{p.duration || "—"}</td>
                   <td className="px-3 py-3">
                     <Badge variant="outline" className={m.cls}>{m.label}</Badge>
                   </td>
