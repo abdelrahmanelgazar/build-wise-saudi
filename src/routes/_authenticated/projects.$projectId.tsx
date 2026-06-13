@@ -221,9 +221,8 @@ function ProjectInfoForm({ project }: { project: Project }) {
     tender_entry_date: project.tender_entry_date ?? "",
     last_submit_date: project.last_submit_date ?? "",
     last_rfi_date: project.last_rfi_date ?? "",
-    start_date: project.start_date ?? "",
-    end_date: project.end_date ?? "",
     submission_date: project.submission_date ?? "",
+    duration: (project as any).duration ?? "",
     note: project.note ?? "",
     notes: project.notes ?? "",
   });
@@ -247,9 +246,8 @@ function ProjectInfoForm({ project }: { project: Project }) {
           tender_entry_date: form.tender_entry_date || null,
           last_submit_date: form.last_submit_date || null,
           last_rfi_date: form.last_rfi_date || null,
-          start_date: form.start_date || null,
-          end_date: form.end_date || null,
           submission_date: form.submission_date || null,
+          duration: form.duration || null,
           note: form.note || null,
           notes: form.notes || null,
         })
@@ -316,11 +314,8 @@ function ProjectInfoForm({ project }: { project: Project }) {
         <Field label="تاريخ التسليم">
           <Input type="date" value={form.submission_date} onChange={(e) => setForm({ ...form, submission_date: e.target.value })} />
         </Field>
-        <Field label="تاريخ البداية">
-          <Input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} />
-        </Field>
-        <Field label="تاريخ النهاية">
-          <Input type="date" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} />
+        <Field label="مدة المشروع">
+          <Input value={form.duration} onChange={(e) => setForm({ ...form, duration: e.target.value })} placeholder="مثال: 12 شهر" />
         </Field>
       </div>
       <div className="mt-4 grid gap-4 sm:grid-cols-2">

@@ -166,6 +166,7 @@ function ProjectsIndex() {
               <th className="px-3 py-3 font-medium">دخول المناقصة</th>
               <th className="px-3 py-3 font-medium">آخر تقديم</th>
               <th className="px-3 py-3 font-medium">آخر استفسارات</th>
+              <th className="px-3 py-3 font-medium">مدة المشروع</th>
               <th className="px-3 py-3 font-medium">الحالة</th>
               <th className="px-3 py-3 font-medium">ملاحظات</th>
               <th className="px-3 py-3 font-medium">القيمة (ر.س)</th>
@@ -175,14 +176,14 @@ function ProjectsIndex() {
           <tbody className="divide-y divide-border">
             {isLoading && (
               <tr>
-                <td colSpan={15} className="px-4 py-8 text-center text-muted-foreground">
+                <td colSpan={16} className="px-4 py-8 text-center text-muted-foreground">
                   جاري التحميل…
                 </td>
               </tr>
             )}
             {!isLoading && filtered.length === 0 && (
               <tr>
-                <td colSpan={15} className="px-4 py-12 text-center text-muted-foreground">
+                <td colSpan={16} className="px-4 py-12 text-center text-muted-foreground">
                   <FolderPlus className="mx-auto mb-2 h-8 w-8 opacity-40" />
                   <div>لا توجد مشاريع — أضف مشروعك الأول للبدء</div>
                 </td>
@@ -217,6 +218,7 @@ function ProjectsIndex() {
                   <td className="px-3 py-3 text-muted-foreground">{p.tender_entry_date || "—"}</td>
                   <td className="px-3 py-3 text-muted-foreground">{p.last_submit_date || p.submission_date || "—"}</td>
                   <td className="px-3 py-3 text-muted-foreground">{p.last_rfi_date || "—"}</td>
+                  <td className="px-3 py-3 text-muted-foreground">{p.duration || "—"}</td>
                   <td className="px-3 py-3">
                     <Badge variant="outline" className={m.cls}>{m.label}</Badge>
                   </td>
@@ -306,6 +308,7 @@ function NewProjectDialog() {
     tender_entry_date: "",
     last_submit_date: "",
     last_rfi_date: "",
+    duration: "",
     status: "studying" as Status,
     note: "",
     estValue: "",
@@ -335,6 +338,7 @@ function NewProjectDialog() {
           tender_entry_date: form.tender_entry_date || null,
           last_submit_date: form.last_submit_date || null,
           last_rfi_date: form.last_rfi_date || null,
+          duration: form.duration || null,
           status: form.status,
           note: form.note.trim() || null,
           estimated_value: Number(form.estValue) || 0,
@@ -354,6 +358,7 @@ function NewProjectDialog() {
         code: "", client: "", name: "", location: "", area: "",
         scope_of_work: "", contract_type: "",
         tender_entry_date: "", last_submit_date: "", last_rfi_date: "",
+        duration: "",
         status: "studying", note: "", estValue: "",
       });
     },
@@ -433,6 +438,12 @@ function NewProjectDialog() {
             <div className="grid gap-1.5">
               <Label>آخر تاريخ للاستفسارات</Label>
               <Input type="date" value={form.last_rfi_date} onChange={(e) => set("last_rfi_date", e.target.value)} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-1.5">
+              <Label>مدة المشروع</Label>
+              <Input value={form.duration} onChange={(e) => set("duration", e.target.value)} placeholder="مثال: 12 شهر" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
