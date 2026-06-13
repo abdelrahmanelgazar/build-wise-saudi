@@ -221,9 +221,8 @@ function ProjectInfoForm({ project }: { project: Project }) {
     tender_entry_date: project.tender_entry_date ?? "",
     last_submit_date: project.last_submit_date ?? "",
     last_rfi_date: project.last_rfi_date ?? "",
-    start_date: project.start_date ?? "",
-    end_date: project.end_date ?? "",
     submission_date: project.submission_date ?? "",
+    duration: (project as any).duration ?? "",
     note: project.note ?? "",
     notes: project.notes ?? "",
   });
