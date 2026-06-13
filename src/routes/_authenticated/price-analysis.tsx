@@ -52,13 +52,16 @@ function PriceAnalysisPage() {
   const { item } = Route.useSearch();
   const navigate = Route.useNavigate();
   const [selectedId, setSelectedId] = useState<string | null>(item ?? null);
+  const projectId = useActiveProjectId();
 
   const { data: boqItems = [] } = useQuery({
-    queryKey: ["boq_items"],
+    queryKey: ["boq_items", projectId],
+    enabled: !!projectId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("boq_items")
         .select("*")
+        .eq("project_id", projectId!)
         .eq("is_group", false)
         .order("item_no");
       if (error) throw error;
