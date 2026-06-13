@@ -253,6 +253,7 @@ export type Database = {
           code: string | null
           contract_type: string | null
           created_at: string
+          duration: string | null
           end_date: string | null
           estimated_value: number | null
           financial_requirements: string | null
@@ -280,6 +281,7 @@ export type Database = {
           code?: string | null
           contract_type?: string | null
           created_at?: string
+          duration?: string | null
           end_date?: string | null
           estimated_value?: number | null
           financial_requirements?: string | null
@@ -307,6 +309,7 @@ export type Database = {
           code?: string | null
           contract_type?: string | null
           created_at?: string
+          duration?: string | null
           end_date?: string | null
           estimated_value?: number | null
           financial_requirements?: string | null
