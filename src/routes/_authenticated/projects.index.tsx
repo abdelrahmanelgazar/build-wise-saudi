@@ -357,6 +357,7 @@ function NewProjectDialog() {
         code: "", client: "", name: "", location: "", area: "",
         scope_of_work: "", contract_type: "",
         tender_entry_date: "", last_submit_date: "", last_rfi_date: "",
+        duration: "",
         status: "studying", note: "", estValue: "",
       });
     },
