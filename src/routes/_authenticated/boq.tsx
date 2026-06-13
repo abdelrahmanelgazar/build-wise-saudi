@@ -429,13 +429,13 @@ function NewBoqDialog({
       }
 
       // Compute sort_order = max(sibling) + 10
-      const { data: siblings } = await supabase
+      let sortQuery = supabase
         .from("boq_items")
         .select("sort_order")
-        .eq("project_id", projectId)
-        .is("parent_id", parentId ? null : null);
-      const filtered = (siblings ?? []).filter(() => true);
-      const maxSort = filtered.reduce(
+        .eq("project_id", projectId);
+      sortQuery = parentId ? sortQuery.eq("parent_id", parentId) : sortQuery.is("parent_id", null);
+      const { data: siblings } = await sortQuery;
+      const maxSort = (siblings ?? []).reduce(
         (m: number, r: { sort_order: number }) => Math.max(m, Number(r.sort_order ?? 0)),
         0,
       );
