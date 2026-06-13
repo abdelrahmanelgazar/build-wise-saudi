@@ -51,7 +51,7 @@ function ProjectSwitcher() {
   const activeId = useActiveProjectId();
   const qc = useQueryClient();
   const { data: projects = [] } = useQuery({
-    queryKey: ["projects"],
+    queryKey: ["project-switcher-projects"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("projects")
@@ -95,7 +95,7 @@ function ProjectSwitcher() {
               key={p.id}
               onClick={() => {
                 setActiveProjectId(p.id);
-                qc.invalidateQueries();
+                qc.invalidateQueries({ queryKey: ["active-project-data"] });
                 setOpen(false);
               }}
               className={cn(
