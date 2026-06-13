@@ -90,7 +90,7 @@ function BoqPage() {
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["boq_items"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("boq_items").select("*");
+      const { data, error } = await supabase.from("boq_items").select("*").eq("project_id", projectId!);
       if (error) throw error;
       return data as BoqRow[];
     },
