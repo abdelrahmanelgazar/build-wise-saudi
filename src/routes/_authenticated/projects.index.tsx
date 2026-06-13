@@ -166,6 +166,7 @@ function ProjectsIndex() {
               <th className="px-3 py-3 font-medium">دخول المناقصة</th>
               <th className="px-3 py-3 font-medium">آخر تقديم</th>
               <th className="px-3 py-3 font-medium">آخر استفسارات</th>
+              <th className="px-3 py-3 font-medium">مدة المشروع</th>
               <th className="px-3 py-3 font-medium">الحالة</th>
               <th className="px-3 py-3 font-medium">ملاحظات</th>
               <th className="px-3 py-3 font-medium">القيمة (ر.س)</th>
