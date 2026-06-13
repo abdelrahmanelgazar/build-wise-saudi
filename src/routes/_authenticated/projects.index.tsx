@@ -338,6 +338,7 @@ function NewProjectDialog() {
           tender_entry_date: form.tender_entry_date || null,
           last_submit_date: form.last_submit_date || null,
           last_rfi_date: form.last_rfi_date || null,
+          duration: form.duration || null,
           status: form.status,
           note: form.note.trim() || null,
           estimated_value: Number(form.estValue) || 0,
