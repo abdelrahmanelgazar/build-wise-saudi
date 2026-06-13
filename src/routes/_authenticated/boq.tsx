@@ -102,8 +102,8 @@ function BoqPage() {
     },
   });
 
-  // expand all by default when data loads
-  useMemo(() => {
+  // expand all groups by default when data loads
+  useEffect(() => {
     if (rows.length && expanded.size === 0) {
       setExpanded(new Set(rows.filter((r) => r.is_group).map((r) => r.id)));
     }
