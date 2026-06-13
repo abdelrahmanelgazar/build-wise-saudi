@@ -21,6 +21,9 @@ import { fmtNumber, fmtPct, fmtSAR } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
+import { useActiveProjectId } from "@/lib/active-project";
+import { Link } from "@tanstack/react-router";
+import { FolderPlus } from "lucide-react";
 
 type BoqRow = Database["public"]["Tables"]["boq_items"]["Row"];
 type ResourceRow = Database["public"]["Tables"]["resources"]["Row"];
