@@ -247,56 +247,83 @@ export type Database = {
       }
       projects: {
         Row: {
+          area: string | null
           budget: number | null
           client_name: string | null
+          code: string | null
+          contract_type: string | null
           created_at: string
           end_date: string | null
           estimated_value: number | null
           financial_requirements: string | null
           id: string
+          last_rfi_date: string | null
+          last_submit_date: string | null
           location: string | null
           name: string
+          note: string | null
           notes: string | null
+          project_no: number
+          scope_of_work: string | null
           start_date: string | null
           status: Database["public"]["Enums"]["project_status"]
           submission_date: string | null
           technical_requirements: string | null
+          tender_entry_date: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          area?: string | null
           budget?: number | null
           client_name?: string | null
+          code?: string | null
+          contract_type?: string | null
           created_at?: string
           end_date?: string | null
           estimated_value?: number | null
           financial_requirements?: string | null
           id?: string
+          last_rfi_date?: string | null
+          last_submit_date?: string | null
           location?: string | null
           name: string
+          note?: string | null
           notes?: string | null
+          project_no?: number
+          scope_of_work?: string | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["project_status"]
           submission_date?: string | null
           technical_requirements?: string | null
+          tender_entry_date?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          area?: string | null
           budget?: number | null
           client_name?: string | null
+          code?: string | null
+          contract_type?: string | null
           created_at?: string
           end_date?: string | null
           estimated_value?: number | null
           financial_requirements?: string | null
           id?: string
+          last_rfi_date?: string | null
+          last_submit_date?: string | null
           location?: string | null
           name?: string
+          note?: string | null
           notes?: string | null
+          project_no?: number
+          scope_of_work?: string | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["project_status"]
           submission_date?: string | null
           technical_requirements?: string | null
+          tender_entry_date?: string | null
           updated_at?: string
           user_id?: string
         }
