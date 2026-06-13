@@ -298,9 +298,10 @@ function MarkupInput({
       const user_id = userData.user?.id;
       if (!user_id) throw new Error("غير مسجل دخول");
       if (markup) {
+        const payload: Partial<Markup> = { [field]: newPct };
         const { error } = await supabase
           .from("price_analysis_markup")
-          .update({ [field]: newPct })
+          .update(payload)
           .eq("boq_item_id", boqItemId);
         if (error) throw error;
       } else {
