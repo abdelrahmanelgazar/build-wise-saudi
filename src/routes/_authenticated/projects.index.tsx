@@ -192,7 +192,12 @@ function ProjectsIndex() {
               const m = STATUS_META[p.status as Status] ?? { label: p.status ?? "—", cls: "bg-muted/60 text-muted-foreground border-border/60" };
               return (
                 <tr key={p.id} className="hover:bg-muted/30">
-                  <td className="px-3 py-3 tabular-nums text-muted-foreground">{p.project_no ?? "—"}</td>
+                  <td className="px-3 py-3">
+                    <NoEditor
+                      value={p.project_no}
+                      onSave={(v) => updateNoMut.mutate({ id: p.id, project_no: v })}
+                    />
+                  </td>
                   <td className="px-3 py-3 font-mono text-[11px]">{p.code || "—"}</td>
                   <td className="px-3 py-3 text-muted-foreground">{p.client_name || "—"}</td>
                   <td className="px-3 py-3 font-medium">
