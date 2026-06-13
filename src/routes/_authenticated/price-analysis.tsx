@@ -324,12 +324,12 @@ function MarkupInput({
         boq_item_id: boqItemId,
         user_id,
         project_id: projectId,
-        indirect_pct: markup?.indirect_pct ?? 5,
-        overhead_pct: markup?.overhead_pct ?? 8,
-        risk_pct: markup?.risk_pct ?? 3,
-        profit_pct: markup?.profit_pct ?? 10,
+        indirect_pct: Number(markup?.indirect_pct ?? 5),
+        overhead_pct: Number(markup?.overhead_pct ?? 8),
+        risk_pct: Number(markup?.risk_pct ?? 3),
+        profit_pct: Number(markup?.profit_pct ?? 10),
         [field]: newPct,
-      };
+      } as Database["public"]["Tables"]["price_analysis_markup"]["Insert"];
       const { error } = await supabase
         .from("price_analysis_markup")
         .upsert(payload, { onConflict: "boq_item_id" });
