@@ -308,6 +308,7 @@ function NewProjectDialog() {
     tender_entry_date: "",
     last_submit_date: "",
     last_rfi_date: "",
+    duration: "",
     status: "studying" as Status,
     note: "",
     estValue: "",
