@@ -263,7 +263,7 @@ export type Database = {
           name: string
           note: string | null
           notes: string | null
-          project_no: number
+          project_no: number | null
           scope_of_work: string | null
           start_date: string | null
           status: Database["public"]["Enums"]["project_status"]
@@ -290,7 +290,7 @@ export type Database = {
           name: string
           note?: string | null
           notes?: string | null
-          project_no?: number
+          project_no?: number | null
           scope_of_work?: string | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["project_status"]
@@ -317,7 +317,7 @@ export type Database = {
           name?: string
           note?: string | null
           notes?: string | null
-          project_no?: number
+          project_no?: number | null
           scope_of_work?: string | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["project_status"]

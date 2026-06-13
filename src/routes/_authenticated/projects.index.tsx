@@ -73,6 +73,18 @@ function ProjectsIndex() {
     },
   });
 
+  const updateNoMut = useMutation({
+    mutationFn: async ({ id, project_no }: { id: string; project_no: number | null }) => {
+      const { error } = await supabase.from("projects").update({ project_no } as any).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("تم تحديث رقم المشروع");
+      qc.invalidateQueries({ queryKey: ["projects"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const delMut = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("projects").delete().eq("id", id);
@@ -180,7 +192,12 @@ function ProjectsIndex() {
               const m = STATUS_META[p.status as Status] ?? { label: p.status ?? "—", cls: "bg-muted/60 text-muted-foreground border-border/60" };
               return (
                 <tr key={p.id} className="hover:bg-muted/30">
-                  <td className="px-3 py-3 tabular-nums text-muted-foreground">{p.project_no ?? "—"}</td>
+                  <td className="px-3 py-3">
+                    <NoEditor
+                      value={p.project_no}
+                      onSave={(v) => updateNoMut.mutate({ id: p.id, project_no: v })}
+                    />
+                  </td>
                   <td className="px-3 py-3 font-mono text-[11px]">{p.code || "—"}</td>
                   <td className="px-3 py-3 text-muted-foreground">{p.client_name || "—"}</td>
                   <td className="px-3 py-3 font-medium">
@@ -241,9 +258,44 @@ function ProjectsIndex() {
   );
 }
 
+function NoEditor({ value, onSave }: { value: number | null | undefined; onSave: (v: number | null) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [val, setVal] = useState(value != null ? String(value) : "");
+  if (!editing) {
+    return (
+      <button
+        onClick={(e) => { e.stopPropagation(); setVal(value != null ? String(value) : ""); setEditing(true); }}
+        className="tabular-nums text-muted-foreground hover:text-primary hover:underline"
+        title="انقر للتعديل"
+      >
+        {value ?? "—"}
+      </button>
+    );
+  }
+  return (
+    <Input
+      type="number"
+      autoFocus
+      value={val}
+      onChange={(e) => setVal(e.target.value)}
+      onBlur={() => {
+        setEditing(false);
+        const n = val.trim() === "" ? null : Number(val);
+        if (n !== (value ?? null)) onSave(n);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+        if (e.key === "Escape") { setVal(value != null ? String(value) : ""); setEditing(false); }
+      }}
+      className="h-7 w-20 text-xs"
+    />
+  );
+}
+
 function NewProjectDialog() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
+    project_no: "",
     code: "",
     client: "",
     name: "",
@@ -272,6 +324,7 @@ function NewProjectDialog() {
         .from("projects")
         .insert({
           user_id,
+          project_no: form.project_no.trim() === "" ? null : Number(form.project_no),
           name: form.name.trim(),
           code: form.code.trim() || null,
           client_name: form.client.trim() || null,
@@ -297,6 +350,7 @@ function NewProjectDialog() {
       setActiveProjectId(p.id);
       setOpen(false);
       setForm({
+        project_no: "",
         code: "", client: "", name: "", location: "", area: "",
         scope_of_work: "", contract_type: "",
         tender_entry_date: "", last_submit_date: "", last_rfi_date: "",
@@ -319,7 +373,11 @@ function NewProjectDialog() {
           <DialogTitle>مشروع جديد</DialogTitle>
         </DialogHeader>
         <div className="grid gap-3">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
+            <div className="grid gap-1.5">
+              <Label>رقم المشروع (No)</Label>
+              <Input type="number" value={form.project_no} onChange={(e) => set("project_no", e.target.value)} placeholder="675" />
+            </div>
             <div className="grid gap-1.5">
               <Label>Code</Label>
               <Input value={form.code} onChange={(e) => set("code", e.target.value)} placeholder="AFC-MAS-26-01" />
