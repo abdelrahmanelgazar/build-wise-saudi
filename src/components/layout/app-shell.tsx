@@ -240,8 +240,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="relative flex-1 max-w-md">
             <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="ابحث في البنود، الموارد، المناقصات…"
+              placeholder="البحث الموحّد قريباً…"
+              disabled
               className="h-9 pr-9 text-sm"
+              title="ميزة البحث الموحّد قيد التطوير"
             />
           </div>
           <div className="flex items-center gap-2">
