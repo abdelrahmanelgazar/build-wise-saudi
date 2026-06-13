@@ -373,7 +373,11 @@ function NewProjectDialog() {
           <DialogTitle>مشروع جديد</DialogTitle>
         </DialogHeader>
         <div className="grid gap-3">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
+            <div className="grid gap-1.5">
+              <Label>رقم المشروع (No)</Label>
+              <Input type="number" value={form.project_no} onChange={(e) => set("project_no", e.target.value)} placeholder="675" />
+            </div>
             <div className="grid gap-1.5">
               <Label>Code</Label>
               <Input value={form.code} onChange={(e) => set("code", e.target.value)} placeholder="AFC-MAS-26-01" />
