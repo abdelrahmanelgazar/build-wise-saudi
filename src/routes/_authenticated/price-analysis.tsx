@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/select";
 import { Boxes, Hammer, Truck, Plus, Trash2, TrendingUp } from "lucide-react";
 import { PageHeader } from "./resources";
-import { fmtNumber, fmtPct, fmtSAR } from "@/lib/format";
+import { fmtNumber, fmtSAR } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
