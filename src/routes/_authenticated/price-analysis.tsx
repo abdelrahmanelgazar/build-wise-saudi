@@ -470,13 +470,16 @@ function AddPaItemDialog({ boqItemId, type }: { boqItemId: string; type: Resourc
   const [resourceId, setResourceId] = useState<string>("");
   const [qty, setQty] = useState("");
   const qc = useQueryClient();
+  const projectId = useActiveProjectId();
 
   const { data: resources = [] } = useQuery({
-    queryKey: ["resources", type],
+    queryKey: ["resources", projectId, type],
+    enabled: !!projectId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("resources")
         .select("*")
+        .eq("project_id", projectId!)
         .eq("type", type)
         .order("name_ar");
       if (error) throw error;
@@ -496,6 +499,7 @@ function AddPaItemDialog({ boqItemId, type }: { boqItemId: string; type: Resourc
       if (!user_id || !selected) throw new Error("اختر مورداً");
       const { error } = await supabase.from("price_analysis_items").insert({
         user_id,
+        project_id: projectId,
         boq_item_id: boqItemId,
         resource_id: selected.id,
         resource_type: type,
