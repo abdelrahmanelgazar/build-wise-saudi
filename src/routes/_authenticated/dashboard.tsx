@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useActiveProjectId } from "@/lib/active-project";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,7 +40,7 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 
 const STATUS_META: Record<Status, { label: string; color: string }> = {
   studying: { label: "قيد الدراسة", color: "#94a3b8" },
-  submitted_to_medial_man: { label: "مُرسل للوسيط", color: "#f59e0b" },
+  submitted_to_medial_man: { label: "مُرسل للوسيط (GM)", color: "#f59e0b" },
   submitted_to_client: { label: "مُرسل للعميل", color: "#3b82f6" },
   waiting_for_reply: { label: "بانتظار الرد", color: "#eab308" },
   inquiries_sent: { label: "استفسارات", color: "#06b6d4" },
@@ -56,6 +57,8 @@ const WON_STATUSES: Status[] = ["construction_ongoing", "construction_complete",
 const LOST_STATUSES: Status[] = ["client_rejected"];
 
 function DashboardPage() {
+  const activeProjectId = useActiveProjectId();
+
   const { data: projects = [], isLoading } = useQuery({
     queryKey: ["dashboard-projects"],
     queryFn: async () => {
@@ -69,22 +72,27 @@ function DashboardPage() {
   });
 
   const { data: resourcesCount = 0 } = useQuery({
-    queryKey: ["dashboard-resources-count"],
+    queryKey: ["dashboard-resources-count", activeProjectId],
+    enabled: !!activeProjectId,
     queryFn: async () => {
       const { count, error } = await supabase
         .from("resources")
-        .select("*", { count: "exact", head: true });
+        .select("*", { count: "exact", head: true })
+        .eq("project_id", activeProjectId!);
       if (error) throw error;
       return count ?? 0;
     },
   });
 
   const { data: boqCount = 0 } = useQuery({
-    queryKey: ["dashboard-boq-count"],
+    queryKey: ["dashboard-boq-count", activeProjectId],
+    enabled: !!activeProjectId,
     queryFn: async () => {
       const { count, error } = await supabase
         .from("boq_items")
-        .select("*", { count: "exact", head: true });
+        .select("*", { count: "exact", head: true })
+        .eq("project_id", activeProjectId!)
+        .eq("is_group", false);
       if (error) throw error;
       return count ?? 0;
     },
@@ -153,7 +161,13 @@ function DashboardPage() {
         <KpiCard icon={Building2} label="إجمالي المشاريع" value={fmtNumber(stats.total, 0)} hint={`${stats.active} نشطة`} color="text-primary" />
         <KpiCard icon={Wallet} label="إجمالي القيمة التقديرية" value={fmtSAR(stats.totalValue)} hint={`الميزانية: ${fmtSAR(stats.totalBudget)}`} color="text-emerald-500" />
         <KpiCard icon={TrendingUp} label="نسبة الفوز" value={`${stats.winRate.toFixed(1)}%`} hint={`${stats.won} فائز / ${stats.lost} خاسر`} color="text-blue-500" />
-        <KpiCard icon={CheckCircle2} label="بيانات المكتبة" value={fmtNumber(resourcesCount, 0)} hint={`${boqCount} بند كميات`} color="text-violet-500" />
+        <KpiCard
+          icon={CheckCircle2}
+          label={activeProjectId ? "موارد المشروع النشط" : "موارد المشروع"}
+          value={activeProjectId ? fmtNumber(resourcesCount, 0) : "—"}
+          hint={activeProjectId ? `${boqCount} بند كميات` : "اختر مشروعاً لعرض الأرقام"}
+          color="text-violet-500"
+        />
       </div>
 
       {/* Charts */}
