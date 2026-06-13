@@ -21,6 +21,9 @@ import { fmtNumber, fmtPct, fmtSAR } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
+import { useActiveProjectId } from "@/lib/active-project";
+import { Link } from "@tanstack/react-router";
+import { FolderPlus } from "lucide-react";
 
 type BoqRow = Database["public"]["Tables"]["boq_items"]["Row"];
 type ResourceRow = Database["public"]["Tables"]["resources"]["Row"];
@@ -49,13 +52,16 @@ function PriceAnalysisPage() {
   const { item } = Route.useSearch();
   const navigate = Route.useNavigate();
   const [selectedId, setSelectedId] = useState<string | null>(item ?? null);
+  const projectId = useActiveProjectId();
 
   const { data: boqItems = [] } = useQuery({
-    queryKey: ["boq_items"],
+    queryKey: ["boq_items", projectId],
+    enabled: !!projectId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("boq_items")
         .select("*")
+        .eq("project_id", projectId!)
         .eq("is_group", false)
         .order("item_no");
       if (error) throw error;
@@ -70,6 +76,21 @@ function PriceAnalysisPage() {
   }, [boqItems, selectedId]);
 
   const selected = boqItems.find((b) => b.id === selectedId) ?? null;
+
+  if (!projectId) {
+    return (
+      <div className="p-6">
+        <div className="rounded-lg border border-dashed border-border bg-card p-10 text-center">
+          <FolderPlus className="mx-auto h-10 w-10 text-muted-foreground opacity-50" />
+          <h2 className="mt-3 text-lg font-semibold">اختر مشروعاً</h2>
+          <p className="mt-1 text-sm text-muted-foreground">تحليل الأسعار يعتمد على بنود مشروع.</p>
+          <Link to="/projects" className="mt-4 inline-block">
+            <Button>الذهاب للمشاريع</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)] flex-col p-6">
@@ -292,6 +313,7 @@ function MarkupInput({
   markup: Markup | null | undefined;
 }) {
   const qc = useQueryClient();
+  const projectId = useActiveProjectId();
   const mut = useMutation({
     mutationFn: async (newPct: number) => {
       const { data: userData } = await supabase.auth.getUser();
@@ -308,6 +330,7 @@ function MarkupInput({
         const { error } = await supabase.from("price_analysis_markup").insert({
           boq_item_id: boqItemId,
           user_id,
+          project_id: projectId,
           indirect_pct: field === "indirect_pct" ? newPct : 5,
           overhead_pct: field === "overhead_pct" ? newPct : 8,
           risk_pct: field === "risk_pct" ? newPct : 3,
@@ -447,13 +470,16 @@ function AddPaItemDialog({ boqItemId, type }: { boqItemId: string; type: Resourc
   const [resourceId, setResourceId] = useState<string>("");
   const [qty, setQty] = useState("");
   const qc = useQueryClient();
+  const projectId = useActiveProjectId();
 
   const { data: resources = [] } = useQuery({
-    queryKey: ["resources", type],
+    queryKey: ["resources", projectId, type],
+    enabled: !!projectId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("resources")
         .select("*")
+        .eq("project_id", projectId!)
         .eq("type", type)
         .order("name_ar");
       if (error) throw error;
@@ -473,6 +499,7 @@ function AddPaItemDialog({ boqItemId, type }: { boqItemId: string; type: Resourc
       if (!user_id || !selected) throw new Error("اختر مورداً");
       const { error } = await supabase.from("price_analysis_items").insert({
         user_id,
+        project_id: projectId,
         boq_item_id: boqItemId,
         resource_id: selected.id,
         resource_type: type,

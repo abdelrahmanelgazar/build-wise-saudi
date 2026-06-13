@@ -26,6 +26,7 @@ export type Database = {
           level: number
           material_cost: number | null
           parent_id: string | null
+          project_id: string | null
           quantity: number | null
           sort_order: number
           subcontractor_cost: number | null
@@ -44,6 +45,7 @@ export type Database = {
           level?: number
           material_cost?: number | null
           parent_id?: string | null
+          project_id?: string | null
           quantity?: number | null
           sort_order?: number
           subcontractor_cost?: number | null
@@ -62,6 +64,7 @@ export type Database = {
           level?: number
           material_cost?: number | null
           parent_id?: string | null
+          project_id?: string | null
           quantity?: number | null
           sort_order?: number
           subcontractor_cost?: number | null
@@ -77,6 +80,13 @@ export type Database = {
             referencedRelation: "boq_items"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "boq_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
         ]
       }
       price_analysis_items: {
@@ -85,6 +95,7 @@ export type Database = {
           created_at: string
           description_ar: string
           id: string
+          project_id: string | null
           quantity: number
           resource_id: string | null
           resource_type: Database["public"]["Enums"]["resource_type"]
@@ -97,6 +108,7 @@ export type Database = {
           created_at?: string
           description_ar: string
           id?: string
+          project_id?: string | null
           quantity?: number
           resource_id?: string | null
           resource_type: Database["public"]["Enums"]["resource_type"]
@@ -109,6 +121,7 @@ export type Database = {
           created_at?: string
           description_ar?: string
           id?: string
+          project_id?: string | null
           quantity?: number
           resource_id?: string | null
           resource_type?: Database["public"]["Enums"]["resource_type"]
@@ -122,6 +135,13 @@ export type Database = {
             columns: ["boq_item_id"]
             isOneToOne: false
             referencedRelation: "boq_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_analysis_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
           {
@@ -139,6 +159,7 @@ export type Database = {
           indirect_pct: number
           overhead_pct: number
           profit_pct: number
+          project_id: string | null
           risk_pct: number
           updated_at: string
           user_id: string
@@ -148,6 +169,7 @@ export type Database = {
           indirect_pct?: number
           overhead_pct?: number
           profit_pct?: number
+          project_id?: string | null
           risk_pct?: number
           updated_at?: string
           user_id: string
@@ -157,6 +179,7 @@ export type Database = {
           indirect_pct?: number
           overhead_pct?: number
           profit_pct?: number
+          project_id?: string | null
           risk_pct?: number
           updated_at?: string
           user_id?: string
@@ -169,7 +192,115 @@ export type Database = {
             referencedRelation: "boq_items"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "price_analysis_markup_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      project_files: {
+        Row: {
+          category: string | null
+          created_at: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          file_type: string | null
+          id: string
+          project_id: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          project_id: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          project_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_files_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          budget: number | null
+          client_name: string | null
+          created_at: string
+          end_date: string | null
+          estimated_value: number | null
+          financial_requirements: string | null
+          id: string
+          location: string | null
+          name: string
+          notes: string | null
+          start_date: string | null
+          status: Database["public"]["Enums"]["project_status"]
+          submission_date: string | null
+          technical_requirements: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          budget?: number | null
+          client_name?: string | null
+          created_at?: string
+          end_date?: string | null
+          estimated_value?: number | null
+          financial_requirements?: string | null
+          id?: string
+          location?: string | null
+          name: string
+          notes?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["project_status"]
+          submission_date?: string | null
+          technical_requirements?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          budget?: number | null
+          client_name?: string | null
+          created_at?: string
+          end_date?: string | null
+          estimated_value?: number | null
+          financial_requirements?: string | null
+          id?: string
+          location?: string | null
+          name?: string
+          notes?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["project_status"]
+          submission_date?: string | null
+          technical_requirements?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       resources: {
         Row: {
@@ -178,6 +309,7 @@ export type Database = {
           id: string
           name_ar: string
           notes: string | null
+          project_id: string | null
           type: Database["public"]["Enums"]["resource_type"]
           unit: string
           unit_price: number
@@ -190,6 +322,7 @@ export type Database = {
           id?: string
           name_ar: string
           notes?: string | null
+          project_id?: string | null
           type: Database["public"]["Enums"]["resource_type"]
           unit: string
           unit_price?: number
@@ -202,13 +335,22 @@ export type Database = {
           id?: string
           name_ar?: string
           notes?: string | null
+          project_id?: string | null
           type?: Database["public"]["Enums"]["resource_type"]
           unit?: string
           unit_price?: number
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "resources_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -247,6 +389,12 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "estimation_manager" | "estimator" | "viewer"
+      project_status:
+        | "draft"
+        | "in_progress"
+        | "awarded"
+        | "rejected"
+        | "completed"
       resource_type: "material" | "labor" | "equipment"
     }
     CompositeTypes: {
@@ -376,6 +524,13 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "estimation_manager", "estimator", "viewer"],
+      project_status: [
+        "draft",
+        "in_progress",
+        "awarded",
+        "rejected",
+        "completed",
+      ],
       resource_type: ["material", "labor", "equipment"],
     },
   },

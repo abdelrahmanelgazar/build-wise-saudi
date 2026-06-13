@@ -26,6 +26,9 @@ import { Pencil, Plus, Search, Trash2, Boxes, Hammer, Truck } from "lucide-react
 import { fmtSAR } from "@/lib/format";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
+import { useActiveProjectId } from "@/lib/active-project";
+import { Link } from "@tanstack/react-router";
+import { FolderPlus } from "lucide-react";
 
 type ResourceRow = Database["public"]["Tables"]["resources"]["Row"];
 type ResourceType = Database["public"]["Enums"]["resource_type"];
@@ -45,13 +48,16 @@ function ResourcesPage() {
   const [tab, setTab] = useState<ResourceType>("material");
   const [search, setSearch] = useState("");
   const qc = useQueryClient();
+  const projectId = useActiveProjectId();
 
   const { data: resources = [], isLoading } = useQuery({
-    queryKey: ["resources"],
+    queryKey: ["resources", projectId],
+    enabled: !!projectId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("resources")
         .select("*")
+        .eq("project_id", projectId!)
         .order("code", { ascending: true });
       if (error) throw error;
       return data as ResourceRow[];
@@ -78,6 +84,23 @@ function ResourcesPage() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  if (!projectId) {
+    return (
+      <div className="p-6">
+        <div className="rounded-lg border border-dashed border-border bg-card p-10 text-center">
+          <FolderPlus className="mx-auto h-10 w-10 text-muted-foreground opacity-50" />
+          <h2 className="mt-3 text-lg font-semibold">اختر مشروعاً</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            مكتبة الموارد خاصة بكل مشروع. اختر مشروعاً من القائمة الجانبية للبدء.
+          </p>
+          <Link to="/projects" className="mt-4 inline-block">
+            <Button>الذهاب للمشاريع</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
@@ -230,12 +253,14 @@ function ResourceFormDialog({
   const [unit, setUnit] = useState(resource?.unit ?? "");
   const [price, setPrice] = useState<string>(String(resource?.unit_price ?? ""));
   const qc = useQueryClient();
+  const projectId = useActiveProjectId();
 
   const mut = useMutation({
     mutationFn: async () => {
       const { data: userData } = await supabase.auth.getUser();
       const user_id = userData.user?.id;
       if (!user_id) throw new Error("غير مسجل دخول");
+      if (!projectId) throw new Error("اختر مشروعاً أولاً");
       const payload = {
         type,
         code: code || null,
@@ -247,7 +272,7 @@ function ResourceFormDialog({
         const { error } = await supabase.from("resources").update(payload).eq("id", resource.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("resources").insert({ ...payload, user_id });
+        const { error } = await supabase.from("resources").insert({ ...payload, user_id, project_id: projectId });
         if (error) throw error;
       }
     },

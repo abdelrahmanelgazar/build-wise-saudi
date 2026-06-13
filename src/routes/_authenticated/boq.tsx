@@ -37,6 +37,7 @@ import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
+import { useActiveProjectId } from "@/lib/active-project";
 
 type BoqRow = Database["public"]["Tables"]["boq_items"]["Row"];
 
@@ -85,12 +86,17 @@ function buildTree(rows: BoqRow[]): TreeNode[] {
 
 function BoqPage() {
   const qc = useQueryClient();
+  const projectId = useActiveProjectId();
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   const { data: rows = [], isLoading } = useQuery({
-    queryKey: ["boq_items"],
+    queryKey: ["boq_items", projectId],
+    enabled: !!projectId,
     queryFn: async () => {
-      const { data, error } = await supabase.from("boq_items").select("*");
+      const { data, error } = await supabase
+        .from("boq_items")
+        .select("*")
+        .eq("project_id", projectId!);
       if (error) throw error;
       return data as BoqRow[];
     },
@@ -142,6 +148,23 @@ function BoqPage() {
     walk(tree, 0, true);
     return out.filter((r) => r.visible);
   }, [tree, expanded]);
+
+  if (!projectId) {
+    return (
+      <div className="p-6">
+        <div className="rounded-lg border border-dashed border-border bg-card p-10 text-center">
+          <FolderPlus className="mx-auto h-10 w-10 text-muted-foreground opacity-50" />
+          <h2 className="mt-3 text-lg font-semibold">اختر مشروعاً للبدء</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            بنود جدول الكميات تنتمي لمشروع. اختر مشروعاً من القائمة الجانبية أو أنشئ مشروعاً جديداً.
+          </p>
+          <Link to="/projects" className="mt-4 inline-block">
+            <Button>الذهاب للمشاريع</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)] flex-col p-6">
@@ -385,14 +408,18 @@ function NewBoqDialog({
   const [parentId, setParentId] = useState<string>("");
   const qc = useQueryClient();
 
+  const projectId = useActiveProjectId();
+
   const mut = useMutation({
     mutationFn: async () => {
       const { data: userData } = await supabase.auth.getUser();
       const user_id = userData.user?.id;
       if (!user_id) throw new Error("غير مسجل دخول");
+      if (!projectId) throw new Error("اختر مشروعاً أولاً");
       const level = parentId ? 1 : 0;
       const { error } = await supabase.from("boq_items").insert({
         user_id,
+        project_id: projectId,
         parent_id: parentId || null,
         item_no: itemNo,
         description_ar: desc,
