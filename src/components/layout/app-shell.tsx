@@ -158,6 +158,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </div>
 
+        <div className="border-b border-sidebar-border p-2">
+          <ProjectSwitcher />
+        </div>
+
         <nav className="flex-1 overflow-y-auto p-2">
           <ul className="space-y-0.5">
             {NAV.map((item) => {
