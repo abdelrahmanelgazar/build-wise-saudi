@@ -295,6 +295,7 @@ function NoEditor({ value, onSave }: { value: number | null | undefined; onSave:
 function NewProjectDialog() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
+    project_no: "",
     code: "",
     client: "",
     name: "",
