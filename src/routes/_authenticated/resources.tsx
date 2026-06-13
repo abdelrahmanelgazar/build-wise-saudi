@@ -31,7 +31,7 @@ type ResourceRow = Database["public"]["Tables"]["resources"]["Row"];
 type ResourceType = Database["public"]["Enums"]["resource_type"];
 
 export const Route = createFileRoute("/_authenticated/resources")({
-  head: () => ({ meta: [{ title: "قاعدة الموارد — تقديري" }] }),
+  head: () => ({ meta: [{ title: "مكتبة البيانات — تقديري" }] }),
   component: ResourcesPage,
 });
 
@@ -82,7 +82,7 @@ function ResourcesPage() {
   return (
     <div className="p-6">
       <PageHeader
-        title="قاعدة الموارد"
+        title="مكتبة البيانات"
         subtitle="مكتبة المواد والعمالة والمعدات بأسعار السوق السعودي — تستخدم في تحليل الأسعار."
         action={<NewResourceDialog defaultType={tab} />}
       />
