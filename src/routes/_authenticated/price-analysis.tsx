@@ -555,5 +555,3 @@ function AddPaItemDialog({ boqItemId, type }: { boqItemId: string; type: Resourc
   );
 }
 
-// keep fmtPct referenced to avoid unused warning if needed elsewhere
-void fmtPct;
