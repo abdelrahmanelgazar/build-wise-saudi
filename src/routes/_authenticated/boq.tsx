@@ -1,0 +1,495 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  ChevronDown,
+  ChevronLeft,
+  FileSpreadsheet,
+  FolderPlus,
+  Plus,
+  Trash2,
+  TrendingUp,
+} from "lucide-react";
+import { PageHeader } from "./resources";
+import { fmtNumber, fmtSAR } from "@/lib/format";
+import { Link } from "@tanstack/react-router";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import type { Database } from "@/integrations/supabase/types";
+
+type BoqRow = Database["public"]["Tables"]["boq_items"]["Row"];
+
+export const Route = createFileRoute("/_authenticated/boq")({
+  head: () => ({ meta: [{ title: "جدول الكميات — تقديري" }] }),
+  component: BoqPage,
+});
+
+type TreeNode = BoqRow & { children: TreeNode[]; rolledTotal: number };
+
+function buildTree(rows: BoqRow[]): TreeNode[] {
+  const map = new Map<string, TreeNode>();
+  rows.forEach((r) => map.set(r.id, { ...r, children: [], rolledTotal: 0 }));
+  const roots: TreeNode[] = [];
+  rows.forEach((r) => {
+    const node = map.get(r.id)!;
+    if (r.parent_id && map.has(r.parent_id)) {
+      map.get(r.parent_id)!.children.push(node);
+    } else {
+      roots.push(node);
+    }
+  });
+  // sort by sort_order
+  const sortRec = (arr: TreeNode[]) => {
+    arr.sort((a, b) => a.sort_order - b.sort_order);
+    arr.forEach((n) => sortRec(n.children));
+  };
+  sortRec(roots);
+  // compute rolled totals
+  const computeTotal = (n: TreeNode): number => {
+    if (n.is_group) {
+      n.rolledTotal = n.children.reduce((s, c) => s + computeTotal(c), 0);
+    } else {
+      const unitRate =
+        Number(n.material_cost ?? 0) +
+        Number(n.labor_cost ?? 0) +
+        Number(n.equipment_cost ?? 0) +
+        Number(n.subcontractor_cost ?? 0);
+      n.rolledTotal = unitRate * Number(n.quantity ?? 0);
+    }
+    return n.rolledTotal;
+  };
+  roots.forEach(computeTotal);
+  return roots;
+}
+
+function BoqPage() {
+  const qc = useQueryClient();
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  const { data: rows = [], isLoading } = useQuery({
+    queryKey: ["boq_items"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("boq_items").select("*");
+      if (error) throw error;
+      return data as BoqRow[];
+    },
+  });
+
+  // expand all by default when data loads
+  useMemo(() => {
+    if (rows.length && expanded.size === 0) {
+      setExpanded(new Set(rows.filter((r) => r.is_group).map((r) => r.id)));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows.length]);
+
+  const tree = useMemo(() => buildTree(rows), [rows]);
+  const grandTotal = tree.reduce((s, n) => s + n.rolledTotal, 0);
+  const itemsCount = rows.filter((r) => !r.is_group).length;
+  const groupsCount = rows.filter((r) => r.is_group).length;
+
+  const delMut = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("boq_items").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("تم الحذف");
+      qc.invalidateQueries({ queryKey: ["boq_items"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const toggle = (id: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const flatRows = useMemo(() => {
+    const out: { node: TreeNode; depth: number; visible: boolean }[] = [];
+    const walk = (nodes: TreeNode[], depth: number, parentVisible: boolean) => {
+      nodes.forEach((n) => {
+        out.push({ node: n, depth, visible: parentVisible });
+        const childVisible = parentVisible && (n.is_group ? expanded.has(n.id) : true);
+        walk(n.children, depth + 1, childVisible);
+      });
+    };
+    walk(tree, 0, true);
+    return out.filter((r) => r.visible);
+  }, [tree, expanded]);
+
+  return (
+    <div className="flex h-[calc(100vh-3.5rem)] flex-col p-6">
+      <PageHeader
+        title="جدول الكميات (BOQ)"
+        subtitle="هيكل تجميعي هرمي لبنود المشروع — حساب تكلفة الوحدة والإجمالي تلقائياً."
+        action={
+          <div className="flex flex-wrap gap-2">
+            <ImportExcelDialog />
+            <NewBoqDialog isGroup parentOptions={tree} />
+            <NewBoqDialog parentOptions={tree} />
+          </div>
+        }
+      />
+
+      {/* KPI strip */}
+      <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
+        <KpiCard label="إجمالي المجموعات" value={String(groupsCount)} />
+        <KpiCard label="إجمالي البنود" value={String(itemsCount)} />
+        <KpiCard label="إجمالي تكلفة المشروع" value={fmtSAR(grandTotal)} accent />
+        <KpiCard
+          label="متوسط تكلفة البند"
+          value={itemsCount ? fmtSAR(grandTotal / itemsCount) : "—"}
+        />
+      </div>
+
+      {/* Table */}
+      <div className="mt-5 flex-1 overflow-auto rounded-lg border border-border bg-card">
+        <table className="w-full min-w-[1100px] text-xs tabular-nums">
+          <thead className="sticky top-0 z-10 bg-muted/40 text-[11px] uppercase text-muted-foreground backdrop-blur">
+            <tr className="border-b border-border">
+              <th className="w-[90px] px-3 py-2.5 text-right font-medium">رقم البند</th>
+              <th className="px-3 py-2.5 text-right font-medium">الوصف</th>
+              <th className="w-[60px] px-2 py-2.5 text-center font-medium">الوحدة</th>
+              <th className="w-[80px] px-2 py-2.5 text-left font-medium">الكمية</th>
+              <th className="w-[110px] px-2 py-2.5 text-left font-medium">مواد</th>
+              <th className="w-[110px] px-2 py-2.5 text-left font-medium">عمالة</th>
+              <th className="w-[110px] px-2 py-2.5 text-left font-medium">معدات</th>
+              <th className="w-[110px] px-2 py-2.5 text-left font-medium">مقاول باطن</th>
+              <th className="w-[120px] bg-primary/5 px-2 py-2.5 text-left font-medium text-primary">
+                سعر الوحدة
+              </th>
+              <th className="w-[140px] bg-primary/10 px-2 py-2.5 text-left font-medium text-primary">
+                الإجمالي
+              </th>
+              <th className="w-[80px] px-2 py-2.5 text-center font-medium">إجراءات</th>
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading && (
+              <tr>
+                <td colSpan={11} className="px-4 py-12 text-center text-muted-foreground">
+                  جاري تحميل بنود المشروع…
+                </td>
+              </tr>
+            )}
+            {!isLoading && flatRows.length === 0 && (
+              <tr>
+                <td colSpan={11} className="px-4 py-16 text-center text-muted-foreground">
+                  لا توجد بنود بعد. ابدأ بإضافة مجموعة (مثل «الأعمال الترابية») ثم بنود تحتها.
+                </td>
+              </tr>
+            )}
+            {flatRows.map(({ node, depth }) => {
+              const unitRate =
+                Number(node.material_cost ?? 0) +
+                Number(node.labor_cost ?? 0) +
+                Number(node.equipment_cost ?? 0) +
+                Number(node.subcontractor_cost ?? 0);
+              const isOpen = expanded.has(node.id);
+              return (
+                <tr
+                  key={node.id}
+                  className={cn(
+                    "border-b border-border/60 transition-colors",
+                    node.is_group
+                      ? "bg-secondary/40 font-semibold text-foreground"
+                      : "hover:bg-muted/20",
+                  )}
+                >
+                  <td className="px-3 py-2 font-mono text-[11px] text-muted-foreground">
+                    {node.item_no}
+                  </td>
+                  <td className="px-3 py-2">
+                    <div
+                      className="flex items-center gap-1.5"
+                      style={{ paddingInlineStart: `${depth * 18}px` }}
+                    >
+                      {node.is_group ? (
+                        <button
+                          onClick={() => toggle(node.id)}
+                          className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"
+                        >
+                          {isOpen ? (
+                            <ChevronDown className="h-3.5 w-3.5" />
+                          ) : (
+                            <ChevronLeft className="h-3.5 w-3.5" />
+                          )}
+                        </button>
+                      ) : (
+                        <span className="inline-block w-5" />
+                      )}
+                      <span
+                        className={cn(
+                          "truncate",
+                          node.is_group ? "text-foreground" : "text-foreground/90",
+                        )}
+                      >
+                        {node.description_ar}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-2 py-2 text-center text-muted-foreground">
+                    {node.unit ?? "—"}
+                  </td>
+                  <td className="px-2 py-2 text-left">
+                    {node.is_group ? "—" : fmtNumber(node.quantity, 2)}
+                  </td>
+                  <td className="px-2 py-2 text-left text-muted-foreground">
+                    {node.is_group ? "" : fmtNumber(node.material_cost, 2)}
+                  </td>
+                  <td className="px-2 py-2 text-left text-muted-foreground">
+                    {node.is_group ? "" : fmtNumber(node.labor_cost, 2)}
+                  </td>
+                  <td className="px-2 py-2 text-left text-muted-foreground">
+                    {node.is_group ? "" : fmtNumber(node.equipment_cost, 2)}
+                  </td>
+                  <td className="px-2 py-2 text-left text-muted-foreground">
+                    {node.is_group ? "" : fmtNumber(node.subcontractor_cost, 2)}
+                  </td>
+                  <td className="bg-primary/5 px-2 py-2 text-left font-semibold text-primary">
+                    {node.is_group ? "" : fmtNumber(unitRate, 2)}
+                  </td>
+                  <td className="bg-primary/10 px-2 py-2 text-left font-bold text-primary">
+                    {fmtNumber(node.rolledTotal, 2)}
+                  </td>
+                  <td className="px-2 py-2">
+                    <div className="flex items-center justify-center gap-0.5">
+                      {!node.is_group && (
+                        <Link
+                          to="/price-analysis"
+                          search={{ item: node.id }}
+                          className="inline-flex h-6 items-center justify-center rounded px-1.5 text-muted-foreground hover:bg-muted hover:text-primary"
+                          title="تحليل الأسعار"
+                        >
+                          <TrendingUp className="h-3.5 w-3.5" />
+                        </Link>
+                      )}
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                        onClick={() => {
+                          if (
+                            confirm(
+                              `حذف ${node.is_group ? "المجموعة" : "البند"} «${node.description_ar}»؟`,
+                            )
+                          )
+                            delMut.mutate(node.id);
+                        }}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function KpiCard({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+  return (
+    <div
+      className={cn(
+        "rounded-lg border border-border bg-card px-4 py-3",
+        accent && "border-primary/30 bg-primary/5",
+      )}
+    >
+      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div
+        className={cn(
+          "mt-1 text-lg font-bold tabular-nums",
+          accent ? "text-primary" : "text-foreground",
+        )}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function ImportExcelDialog() {
+  const [open, setOpen] = useState(false);
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-1.5">
+          <FileSpreadsheet className="h-4 w-4" />
+          استيراد من Excel
+        </Button>
+      </DialogTrigger>
+      <DialogContent dir="rtl">
+        <DialogHeader>
+          <DialogTitle>استيراد جدول كميات من Excel</DialogTitle>
+          <DialogDescription className="leading-relaxed">
+            ميزة الاستيراد من ملفات Excel/XLSX قيد التطوير وستكون متاحة في المرحلة القادمة. سيتم
+            دعم القوالب التالية: قالب وزارة الإسكان، قالب الهيئة العامة، وقالب مخصّص.
+          </DialogDescription>
+        </DialogHeader>
+        <Badge variant="outline" className="border-primary/30 bg-primary/10 text-primary">
+          متاح في المرحلة التالية
+        </Badge>
+        <DialogFooter>
+          <Button onClick={() => setOpen(false)}>حسناً</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function NewBoqDialog({
+  isGroup = false,
+  parentOptions,
+}: {
+  isGroup?: boolean;
+  parentOptions: TreeNode[];
+}) {
+  const [open, setOpen] = useState(false);
+  const [itemNo, setItemNo] = useState("");
+  const [desc, setDesc] = useState("");
+  const [unit, setUnit] = useState("");
+  const [qty, setQty] = useState("");
+  const [mc, setMc] = useState("");
+  const [lc, setLc] = useState("");
+  const [ec, setEc] = useState("");
+  const [parentId, setParentId] = useState<string>("");
+  const qc = useQueryClient();
+
+  const mut = useMutation({
+    mutationFn: async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      const user_id = userData.user?.id;
+      if (!user_id) throw new Error("غير مسجل دخول");
+      const level = parentId ? 1 : 0;
+      const { error } = await supabase.from("boq_items").insert({
+        user_id,
+        parent_id: parentId || null,
+        item_no: itemNo,
+        description_ar: desc,
+        unit: isGroup ? null : unit,
+        quantity: isGroup ? 0 : Number(qty) || 0,
+        material_cost: Number(mc) || 0,
+        labor_cost: Number(lc) || 0,
+        equipment_cost: Number(ec) || 0,
+        is_group: isGroup,
+        level,
+        sort_order: 999,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success(isGroup ? "تمت إضافة المجموعة" : "تمت إضافة البند");
+      qc.invalidateQueries({ queryKey: ["boq_items"] });
+      setOpen(false);
+      setItemNo(""); setDesc(""); setUnit(""); setQty(""); setMc(""); setLc(""); setEc("");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant={isGroup ? "outline" : "default"} className="gap-1.5">
+          {isGroup ? <FolderPlus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+          {isGroup ? "مجموعة جديدة" : "بند جديد"}
+        </Button>
+      </DialogTrigger>
+      <DialogContent dir="rtl" className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{isGroup ? "إضافة مجموعة" : "إضافة بند"}</DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-3 py-2">
+          <div className="grid grid-cols-3 gap-3">
+            <div className="space-y-1.5">
+              <Label>رقم البند</Label>
+              <Input value={itemNo} onChange={(e) => setItemNo(e.target.value)} placeholder="01.05" />
+            </div>
+            <div className="col-span-2 space-y-1.5">
+              <Label>المجموعة الأم</Label>
+              <Select value={parentId} onValueChange={setParentId}>
+                <SelectTrigger>
+                  <SelectValue placeholder={isGroup ? "بدون (مستوى أعلى)" : "اختر مجموعة"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {parentOptions.map((g) => (
+                    <SelectItem key={g.id} value={g.id}>
+                      {g.item_no} — {g.description_ar}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label>الوصف</Label>
+            <Input value={desc} onChange={(e) => setDesc(e.target.value)} required />
+          </div>
+          {!isGroup && (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>الوحدة</Label>
+                  <Input value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="م³" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>الكمية</Label>
+                  <Input type="number" step="0.001" value={qty} onChange={(e) => setQty(e.target.value)} />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1.5">
+                  <Label>تكلفة المواد</Label>
+                  <Input type="number" step="0.01" value={mc} onChange={(e) => setMc(e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>تكلفة العمالة</Label>
+                  <Input type="number" step="0.01" value={lc} onChange={(e) => setLc(e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>تكلفة المعدات</Label>
+                  <Input type="number" step="0.01" value={ec} onChange={(e) => setEc(e.target.value)} />
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>إلغاء</Button>
+          <Button onClick={() => mut.mutate()} disabled={mut.isPending || !itemNo || !desc}>
+            {mut.isPending ? "جاري الحفظ…" : "حفظ"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
