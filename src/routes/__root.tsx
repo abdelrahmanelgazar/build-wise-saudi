@@ -92,6 +92,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content: "تسعير، تحليل أسعار، وإدارة موارد بالريال السعودي.",
       },
       { property: "og:type", content: "website" },
+      { name: "twitter:title", content: "تقديري — منصة تسعير وإدارة المناقصات" },
+      { name: "description", content: "Saudi Estimator Pro is an enterprise platform for construction cost estimation and tendering." },
+      { property: "og:description", content: "Saudi Estimator Pro is an enterprise platform for construction cost estimation and tendering." },
+      { name: "twitter:description", content: "Saudi Estimator Pro is an enterprise platform for construction cost estimation and tendering." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/05e3c442-5a99-475b-b427-ac48e355325a/id-preview-3ed7533e--4379a275-c031-49e2-8f92-e55e588f95bd.lovable.app-1781339658750.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/05e3c442-5a99-475b-b427-ac48e355325a/id-preview-3ed7533e--4379a275-c031-49e2-8f92-e55e588f95bd.lovable.app-1781339658750.png" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
