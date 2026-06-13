@@ -53,7 +53,7 @@ function AuthPage() {
         if (error) throw error;
       }
       // seed demo data on first login (no-op if already seeded)
-      await supabase.rpc("seed_demo_data").catch(() => {});
+      try { await supabase.rpc("seed_demo_data" as never); } catch { /* idempotent */ }
       navigate({ to: "/boq", replace: true });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "حدث خطأ";
@@ -75,7 +75,7 @@ function AuthPage() {
         return;
       }
       if (result.redirected) return;
-      await supabase.rpc("seed_demo_data").catch(() => {});
+      try { await supabase.rpc("seed_demo_data" as never); } catch { /* idempotent */ }
       navigate({ to: "/boq", replace: true });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "خطأ غير متوقع";
