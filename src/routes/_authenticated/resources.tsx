@@ -85,6 +85,23 @@ function ResourcesPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  if (!projectId) {
+    return (
+      <div className="p-6">
+        <div className="rounded-lg border border-dashed border-border bg-card p-10 text-center">
+          <FolderPlus className="mx-auto h-10 w-10 text-muted-foreground opacity-50" />
+          <h2 className="mt-3 text-lg font-semibold">اختر مشروعاً</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            مكتبة الموارد خاصة بكل مشروع. اختر مشروعاً من القائمة الجانبية للبدء.
+          </p>
+          <Link to="/projects" className="mt-4 inline-block">
+            <Button>الذهاب للمشاريع</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6">
       <PageHeader
