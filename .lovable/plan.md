@@ -1,69 +1,94 @@
-# خطة إصلاح شاملة للمنصة
+# خطة تنفيذ صفحة المشاريع
 
-عملت فحص أمني كامل + مراجعة كاملة للكود. لقيت **9 ثغرات أمنية** + **3 مشاكل حرجة** + **8 مشاكل كبيرة** + عدد من المشاكل الصغيرة. دي خطة الإصلاح مرتّبة بالأولوية.
+## نظرة عامة
+المشاريع ستكون الحاوية الرئيسية لكل البيانات (BOQ، تحليل الأسعار). كل بند BOQ وكل مورد سيرتبط بمشروع محدد، مع شريط اختيار المشروع النشط في أعلى التطبيق.
 
----
+## 1. تعديلات قاعدة البيانات (Migration)
 
-## 🔴 الأولوية القصوى — أمان البيانات (Migrations)
+### جدول جديد `projects`
+الحقول:
+- `name` — اسم المشروع
+- `client_name` — اسم العميل
+- `location` — الموقع
+- `status` — enum: `draft` (مسودة)، `in_progress` (جاري)، `awarded` (مرسي)، `rejected` (مرفوض)، `completed` (منتهي)
+- `estimated_value` — القيمة التقديرية
+- `budget` — الميزانية
+- `start_date` / `end_date` / `submission_date` — التواريخ
+- `technical_requirements` — متطلبات العرض الفني (نص طويل)
+- `financial_requirements` — متطلبات العرض المالي (نص طويل)
+- `notes` — ملاحظات
+- `user_id` — مالك المشروع
+- `created_at` / `updated_at`
 
-كل سياسات RLS الحالية بتسمح لأي مستخدم مسجّل بقراءة وتعديل بيانات المستخدمين الآخرين (الشرط `auth.uid() IS NOT NULL` فقط). دي السبب الحقيقي إن البيانات كانت "بتختفي" قبل كده — لأن المستخدمين كانوا بيشوفوا بيانات بعض.
+تفعيل RLS مع policy: المستخدم يدير مشاريعه فقط (`auth.uid() = user_id`).
+GRANT لـ `authenticated` و `service_role`.
 
-**Migration واحد يصلح كل الجداول:**
-- استبدال سياسات `projects`, `boq_items`, `resources`, `price_analysis_items`, `price_analysis_markup`, `project_files` بشرط `auth.uid() = user_id`
-- إضافة `ON DELETE CASCADE` على `boq_items.parent_id` (يحل مشكلة C3 — حذف مجموعة يحذف بنودها)
-- إضافة UNIQUE constraint على `(user_id, project_id, item_no)` لمنع التكرار
-- إضافة policy UPDATE على storage bucket `project-files`
-- تأمين دالة `seed_demo_data` بحيث ما تتنفذش إلا للمستخدم الحالي فقط (موجود فعلاً لكن لازم نتأكد إنها مش متاحة للـ anon)
+### إضافة `project_id` للجداول الحالية
+- `boq_items.project_id` (UUID, FK → projects, ON DELETE CASCADE)
+- `resources.project_id` (UUID nullable — الموارد قد تكون عامة أو خاصة بمشروع)
+- `price_analysis_items.project_id` (مشتقة من boq_item)
+- `price_analysis_markup.project_id`
 
-## 🔴 Bugs حرجة في الكود
+### تخزين الملفات
+إنشاء bucket خاص `project-files` (private) لرفع ملفات الشروط/المرفقات، مع RLS على `storage.objects` يحصر الوصول للمالك (path = `{user_id}/{project_id}/...`).
 
-1. **`boq.tsx:106` — `useMemo` مع `setState`**: نقلها لـ `useEffect` (السلوك الحالي ممكن يسبب infinite loop أو يفشل صامتاً).
-2. **`price-analysis.tsx:329` — Race condition في markup**: استخدام `upsert` بدل `insert/update` المنفصلين، مع الاعتماد على unique constraint على `boq_item_id`.
-3. **`price-analysis.tsx:353` — `MarkupInput` uncontrolled**: تحويلها لـ controlled input عشان تتحدث لما القيمة تتغير.
+### جدول `project_files`
+لتتبع الملفات المرفوعة:
+- `project_id`، `file_name`، `file_path`، `file_size`، `file_type`، `uploaded_at`
 
-## 🟠 مشاكل كبيرة
+## 2. الواجهة
 
-4. **`reports.tsx` — تقرير الموارد بيعرض كل البيانات**: إضافة فلتر `project_id` (حالياً بيتجاوز عزل المشاريع).
-5. **`boq.tsx:419,433` — `level` و `sort_order` ثابتين**:
-   - حساب `level` من عمق الـ parent
-   - `sort_order = MAX(sort_order) + 1` لإخوة الـ parent نفسه
-6. **`dashboard.tsx:71,82` — عدّاد الموارد/البنود عام**: فلترة بـ `project_id` للمشروع النشط، وتغيير اللابل لو مفيش مشروع مختار.
-7. **`projects.$projectId.tsx:449` — خطأ حذف الملف من Storage مُتجاهَل**: فحص النتيجة قبل حذف السجل من DB.
-8. **`app-shell.tsx:98` — query key ميت `"active-project-data"`**: استبداله بـ keys فعلية (`["boq_items"]`, `["resources"]`, `["price_analysis_items"]`).
-9. **`projects.$projectId.tsx:413` — رفع الملفات بدون تحقق**: إضافة حد أقصى للحجم (10MB) وقائمة MIME types مسموحة.
+### الصفحة الرئيسية `/projects` (استبدال tenders.tsx بـ projects.tsx)
+- جدول/كروت بكل المشاريع
+- بحث بالاسم/العميل، فلترة بالحالة
+- زر "مشروع جديد" يفتح Dialog لإضافة سريعة
+- كل صف فيه: اسم، عميل، حالة (Badge ملون)، قيمة، تاريخ تسليم، أزرار (عرض/تعديل/حذف)
 
-## 🟡 تحسينات صغيرة
+### صفحة التفاصيل `/projects/$projectId`
+تبويبات (Tabs):
+1. **نظرة عامة** — بيانات المشروع + إحصائيات (عدد بنود BOQ، إجمالي التكلفة)
+2. **البيانات الأساسية** — تعديل كل الحقول
+3. **المتطلبات** — العرض الفني والمالي (textarea كبير)
+4. **الملفات** — رفع/تحميل/حذف ملفات الشروط
+5. **روابط سريعة** — أزرار للانتقال لـ BOQ/تحليل الأسعار الخاصة بالمشروع
 
-10. **توحيد `STATUS_META`** في ملف واحد `src/lib/project-status.ts` بدل تكراره في 4 ملفات (اللابل مختلف حالياً في الـ Dashboard — "مُرسل للوسيط" vs "مُرسل للوسيط (GM)").
-11. **إزالة `as any`** عن حقول `Project` الموجودة فعلاً في types.
-12. **توحيد imports المكررة** من نفس الـ package في `boq.tsx` و `price-analysis.tsx`.
-13. **إخفاء/تفعيل خانة البحث في الـ header**: إما إزالتها أو وصلها فعلياً.
-14. **إزالة meta description المكرر** في `__root.tsx`.
-15. **إضافة loading state** على `NoEditor` في `projects.index.tsx`.
+### اختيار المشروع النشط
+- إضافة Project Switcher في `app-shell` (Combobox أعلى الـ Sidebar)
+- المشروع المختار يُحفظ في `localStorage` + Context
+- صفحات BOQ، تحليل الأسعار، الموارد تستخدم المشروع النشط لتصفية بياناتها
+- زر "بدون مشروع" يعرض كل البيانات (وضع عام)
 
-## 🔵 ملاحظات (ما هتتعملش إلا لو طلبت)
+### تحديث الصفحات الأخرى
+- `boq.tsx` و `price-analysis.tsx`: تستخدم `project_id` النشط في كل insert/select
+- إضافة شارة في الـ header توضح المشروع الحالي
 
-- نقل العمليات الحساسة لـ `createServerFn` (حالياً كله client-side — مقبول طالما RLS صح بعد الإصلاح).
-- تفعيل صفحات "قريباً": المراجعة المالية، مساعد AI، الإعدادات.
+## 3. Server Functions
+في `src/lib/projects.functions.ts`:
+- `listProjects` — قائمة مشاريع المستخدم
+- `getProject(id)` — تفاصيل مشروع
+- `createProject(data)` — إنشاء
+- `updateProject(id, data)` — تعديل
+- `deleteProject(id)` — حذف (cascade للـ BOQ المرتبط)
+- `uploadProjectFile` / `deleteProjectFile`
 
----
+كلها بـ `requireSupabaseAuth` middleware.
+
+## 4. Routing
+- `src/routes/_authenticated/projects.tsx` (layout مع `<Outlet />`)
+- `src/routes/_authenticated/projects.index.tsx` (القائمة)
+- `src/routes/_authenticated/projects.$projectId.tsx` (التفاصيل)
+- تحديث `app-shell.tsx`: المسار `/projects` بدل `/tenders`، وحذف `tenders.tsx`
+
+## 5. ترحيل البيانات الموجودة (Demo)
+المشروع التجريبي الموجود (BOQ + Resources الحاليين) — إنشاء مشروع افتراضي تجريبي "مبنى إداري - الرياض" وربط كل البيانات الموجودة به عبر UPDATE.
 
 ## ترتيب التنفيذ
+1. Migration (جداول + storage bucket + ربط الـ FKs + ترحيل البيانات)
+2. Server functions
+3. Project Context + Switcher في app-shell
+4. صفحة القائمة + Dialog الإضافة
+5. صفحة التفاصيل بكل تبويباتها
+6. تحديث صفحات BOQ/الموارد لاستخدام المشروع النشط
+7. حذف `tenders.tsx`
 
-1. **Migration الأمان** (يحل أهم 6 ثغرات + مشكلة الـ orphan)
-2. **الـ 3 bugs الحرجة في الكود**
-3. **الـ 6 مشاكل الكبيرة**
-4. **التحسينات الصغيرة** (دفعة واحدة)
-
-كل خطوة هتعمل verify بعدها للتأكد من النتيجة.
-
----
-
-## للتأكيد قبل البدء
-
-عايز أنفّذ:
-- (أ) **كل الخطة** (الأمان + الحرج + الكبير + الصغير) — مُوصى به
-- (ب) **الأمان + الحرج فقط** (أسرع، يحل مشاكل عزل البيانات والـ bugs)
-- (ج) **اختار خطوات معينة** بالأرقام
-
-استنّى موافقتك قبل ما أبدأ.
+هل تريد المضي بهذه الخطة كاملة، أم تفضّل تجزئتها (مثلاً البدء بـ CRUD الأساسي فقط ثم الملفات وربط BOQ لاحقاً)؟

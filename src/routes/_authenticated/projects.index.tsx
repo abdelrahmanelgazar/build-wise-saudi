@@ -106,8 +106,8 @@ function ProjectsIndex() {
         p.name.toLowerCase().includes(s) ||
         (p.client_name ?? "").toLowerCase().includes(s) ||
         (p.location ?? "").toLowerCase().includes(s) ||
-        (p.code ?? "").toLowerCase().includes(s) ||
-        (p.area ?? "").toLowerCase().includes(s)
+        ((p as any).code ?? "").toLowerCase().includes(s) ||
+        ((p as any).area ?? "").toLowerCase().includes(s)
       );
     });
 

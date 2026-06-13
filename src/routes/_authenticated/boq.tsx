@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -102,8 +102,8 @@ function BoqPage() {
     },
   });
 
-  // expand all groups by default when data loads
-  useEffect(() => {
+  // expand all by default when data loads
+  useMemo(() => {
     if (rows.length && expanded.size === 0) {
       setExpanded(new Set(rows.filter((r) => r.is_group).map((r) => r.id)));
     }
@@ -416,31 +416,7 @@ function NewBoqDialog({
       const user_id = userData.user?.id;
       if (!user_id) throw new Error("غير مسجل دخول");
       if (!projectId) throw new Error("اختر مشروعاً أولاً");
-
-      // Compute level by walking up parents
-      let level = 0;
-      if (parentId) {
-        const { data: parent } = await supabase
-          .from("boq_items")
-          .select("level")
-          .eq("id", parentId)
-          .maybeSingle();
-        level = (parent?.level ?? 0) + 1;
-      }
-
-      // Compute sort_order = max(sibling) + 10
-      let sortQuery = supabase
-        .from("boq_items")
-        .select("sort_order")
-        .eq("project_id", projectId);
-      sortQuery = parentId ? sortQuery.eq("parent_id", parentId) : sortQuery.is("parent_id", null);
-      const { data: siblings } = await sortQuery;
-      const maxSort = (siblings ?? []).reduce(
-        (m: number, r: { sort_order: number }) => Math.max(m, Number(r.sort_order ?? 0)),
-        0,
-      );
-      const sort_order = maxSort + 10;
-
+      const level = parentId ? 1 : 0;
       const { error } = await supabase.from("boq_items").insert({
         user_id,
         project_id: projectId,
@@ -454,7 +430,7 @@ function NewBoqDialog({
         equipment_cost: Number(ec) || 0,
         is_group: isGroup,
         level,
-        sort_order,
+        sort_order: 999,
       });
       if (error) throw error;
     },

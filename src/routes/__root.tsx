@@ -93,7 +93,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { name: "twitter:title", content: "تقديري — منصة تسعير وإدارة المناقصات" },
-      { name: "twitter:description", content: "تسعير، تحليل أسعار، وإدارة موارد بالريال السعودي." },
+      { name: "description", content: "Saudi Estimator Pro is an enterprise platform for construction cost estimation and tendering." },
+      { property: "og:description", content: "Saudi Estimator Pro is an enterprise platform for construction cost estimation and tendering." },
+      { name: "twitter:description", content: "Saudi Estimator Pro is an enterprise platform for construction cost estimation and tendering." },
       { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/05e3c442-5a99-475b-b427-ac48e355325a/id-preview-3ed7533e--4379a275-c031-49e2-8f92-e55e588f95bd.lovable.app-1781339658750.png" },
       { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/05e3c442-5a99-475b-b427-ac48e355325a/id-preview-3ed7533e--4379a275-c031-49e2-8f92-e55e588f95bd.lovable.app-1781339658750.png" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -105,32 +107,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap",
-      },
-    ],
-    // GitHub Pages SPA routing: redirect /?/path back to /path
-    scripts: [
-      {
-        dangerouslySetInnerHTML: {
-          __html: `(function(){
-  var redirect = sessionStorage.redirect;
-  delete sessionStorage.redirect;
-  if (redirect && redirect !== location.href) {
-    history.replaceState(null, null, redirect);
-  }
-  // Handle /?/ style redirects from 404.html
-  var search = location.search;
-  if (search.startsWith('?/')) {
-    var query = search.slice(2).replace(/~and~/g, '&');
-    var hashIndex = query.indexOf('#');
-    var hash = hashIndex >= 0 ? query.slice(hashIndex) : '';
-    var path = hashIndex >= 0 ? query.slice(0, hashIndex) : query;
-    var ampIndex = path.indexOf('&');
-    var route = '/' + (ampIndex >= 0 ? path.slice(0, ampIndex) : path);
-    var qs = ampIndex >= 0 ? '?' + path.slice(ampIndex + 1) : '';
-    history.replaceState(null, null, route + qs + hash);
-  }
-})();`,
-        },
       },
     ],
   }),

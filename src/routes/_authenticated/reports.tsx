@@ -120,17 +120,17 @@ function ProjectsReport() {
       "اسم المشروع": p.name,
       "العميل": p.client_name ?? "",
       "الموقع": p.location ?? "",
-      "المنطقة": p.area ?? "",
-      "نطاق العمل": p.scope_of_work ?? "",
-      "نوع التعاقد": p.contract_type ?? "",
+      "المنطقة": (p as any).area ?? "",
+      "نطاق العمل": (p as any).scope_of_work ?? "",
+      "نوع التعاقد": (p as any).contract_type ?? "",
       "الحالة": STATUS_META[p.status]?.label ?? p.status,
-      "دخول المناقصة": p.tender_entry_date ?? "",
-      "آخر تقديم": p.last_submit_date ?? "",
-      "آخر استفسارات": p.last_rfi_date ?? "",
-      "مدة المشروع": p.duration ?? "",
+      "دخول المناقصة": (p as any).tender_entry_date ?? "",
+      "آخر تقديم": (p as any).last_submit_date ?? "",
+      "آخر استفسارات": (p as any).last_rfi_date ?? "",
+      "مدة المشروع": (p as any).duration ?? "",
       "القيمة التقديرية": Number(p.estimated_value ?? 0),
       "الميزانية": Number(p.budget ?? 0),
-      "ملاحظات": p.note ?? "",
+      "ملاحظات": (p as any).note ?? "",
     }));
     downloadXlsx(rows, "projects-report", "المشاريع");
   };
@@ -185,12 +185,12 @@ function ProjectsReport() {
               return (
                 <tr key={p.id} className="hover:bg-muted/30">
                   <td className="px-3 py-2 tabular-nums">{p.project_no ?? "—"}</td>
-                  <td className="px-3 py-2 font-mono text-[11px]">{p.code || "—"}</td>
+                  <td className="px-3 py-2 font-mono text-[11px]">{(p as any).code || "—"}</td>
                   <td className="px-3 py-2 font-medium">{p.name}</td>
                   <td className="px-3 py-2 text-muted-foreground">{p.client_name || "—"}</td>
                   <td className="px-3 py-2 text-muted-foreground">{p.location || "—"}</td>
                   <td className="px-3 py-2"><Badge variant="outline" className={m.cls}>{m.label}</Badge></td>
-                  <td className="px-3 py-2 text-muted-foreground">{p.duration || "—"}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{(p as any).duration || "—"}</td>
                   <td className="px-3 py-2 tabular-nums">{fmtSAR(Number(p.estimated_value ?? 0))}</td>
                   <td className="px-3 py-2 tabular-nums">{fmtSAR(Number(p.budget ?? 0))}</td>
                 </tr>
@@ -349,30 +349,12 @@ function BoqReport() {
 /* ============== 3) RESOURCES REPORT ============== */
 function ResourcesReport() {
   const [type, setType] = useState<"all" | "material" | "labor" | "equipment">("all");
-  const [projectId, setProjectId] = useState<string>("");
-
-  const { data: projects = [] } = useQuery({
-    queryKey: ["report-resources-projects-list"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("projects").select("id,name,project_no")
-        .order("project_no", { ascending: false });
-      if (error) throw error;
-      return data as Array<Pick<Project, "id" | "name" | "project_no">>;
-    },
-  });
-
-  useEffect(() => {
-    if (!projectId && projects.length > 0) setProjectId(projects[0].id);
-  }, [projectId, projects]);
 
   const { data: resources = [], isLoading } = useQuery({
-    queryKey: ["report-resources", projectId],
-    enabled: !!projectId,
+    queryKey: ["report-resources"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("resources").select("*").eq("project_id", projectId)
-        .order("type").order("code", { ascending: true });
+        .from("resources").select("*").order("type").order("code", { ascending: true });
       if (error) throw error;
       return data as Resource[];
     },
@@ -406,16 +388,6 @@ function ResourcesReport() {
       <Toolbar title="تقرير الموارد" onExcel={exportExcel} />
 
       <div className="mb-3 flex flex-wrap items-center gap-3 print:hidden">
-        <Select value={projectId} onValueChange={setProjectId}>
-          <SelectTrigger className="h-9 w-80"><SelectValue placeholder="اختر مشروعاً…" /></SelectTrigger>
-          <SelectContent>
-            {projects.map((p) => (
-              <SelectItem key={p.id} value={p.id}>
-                {p.project_no ? `#${p.project_no} — ` : ""}{p.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
         <Select value={type} onValueChange={(v) => setType(v as typeof type)}>
           <SelectTrigger className="h-9 w-48"><SelectValue /></SelectTrigger>
           <SelectContent>

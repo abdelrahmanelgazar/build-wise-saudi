@@ -95,13 +95,7 @@ function ProjectSwitcher() {
               key={p.id}
               onClick={() => {
                 setActiveProjectId(p.id);
-                // Invalidate all project-scoped queries
-                qc.invalidateQueries({ queryKey: ["boq_items"] });
-                qc.invalidateQueries({ queryKey: ["resources"] });
-                qc.invalidateQueries({ queryKey: ["pa_items"] });
-                qc.invalidateQueries({ queryKey: ["pa_markup"] });
-                qc.invalidateQueries({ queryKey: ["dashboard-resources-count"] });
-                qc.invalidateQueries({ queryKey: ["dashboard-boq-count"] });
+                qc.invalidateQueries({ queryKey: ["active-project-data"] });
                 setOpen(false);
               }}
               className={cn(
@@ -240,10 +234,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="relative flex-1 max-w-md">
             <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="البحث الموحّد قريباً…"
-              disabled
+              placeholder="ابحث في البنود، الموارد، المناقصات…"
               className="h-9 pr-9 text-sm"
-              title="ميزة البحث الموحّد قيد التطوير"
             />
           </div>
           <div className="flex items-center gap-2">

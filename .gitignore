@@ -1,3 +1,8 @@
+# Environment variables (keep secrets safe!)
+.env
+.env.*
+!.env.example
+
 # Logs
 logs
 *.log
@@ -15,13 +20,6 @@ dist-ssr
 .tanstack/**
 .nitro
 *.local
-# docs is intentionally tracked for GitHub Pages deployment
-!docs
-
-# Environment variables (secrets - never commit!)
-.env
-.env.local
-.env.*.local
 
 # Wrangler / Cloudflare
 .wrangler/
