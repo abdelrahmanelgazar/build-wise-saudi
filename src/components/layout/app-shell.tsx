@@ -34,7 +34,7 @@ const NAV: NavItem[] = [
   { to: "/tenders", label: "المشاريع", icon: FileText, enabled: false },
   { to: "/boq", label: "جدول الكميات", icon: Calculator, enabled: true },
   { to: "/price-analysis", label: "تحليل الأسعار", icon: TrendingUp, enabled: true },
-  { to: "/resources", label: "قاعدة الموارد", icon: Database, enabled: true },
+  { to: "/resources", label: "مكتبة البيانات", icon: Database, enabled: true },
   { to: "/financial", label: "المراجعة المالية", icon: ShieldCheck, enabled: false },
   { to: "/reports", label: "التقارير", icon: BarChart3, enabled: false },
   { to: "/ai-assistant", label: "مساعد الذكاء الاصطناعي", icon: Sparkles, enabled: false },
