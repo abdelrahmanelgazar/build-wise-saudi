@@ -222,7 +222,7 @@ function ProjectInfoForm({ project }: { project: Project }) {
     last_submit_date: project.last_submit_date ?? "",
     last_rfi_date: project.last_rfi_date ?? "",
     submission_date: project.submission_date ?? "",
-    duration: (project as any).duration ?? "",
+    duration: project.duration ?? "",
     note: project.note ?? "",
     notes: project.notes ?? "",
   });
