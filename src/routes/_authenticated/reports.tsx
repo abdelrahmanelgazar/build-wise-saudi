@@ -217,7 +217,7 @@ function BoqReport() {
   const [projectId, setProjectId] = useState<string>("");
 
   const { data: projects = [] } = useQuery({
-    queryKey: ["report-projects-list"],
+    queryKey: ["report-boq-projects-list"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("projects").select("id,name,project_no,code,client_name")
@@ -440,7 +440,7 @@ function ExecutiveSummary() {
   const [projectId, setProjectId] = useState<string>("");
 
   const { data: projects = [] } = useQuery({
-    queryKey: ["report-projects-list"],
+    queryKey: ["report-summary-projects-list"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("projects").select("id,name,project_no,client_name,location,status,estimated_value,budget")
