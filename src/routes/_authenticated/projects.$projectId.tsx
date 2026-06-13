@@ -346,6 +346,56 @@ function ProjectInfoForm({ project }: { project: Project }) {
   );
 }
 
+function RequirementsForm({ project }: { project: Project }) {
+  const qc = useQueryClient();
+  const [tech, setTech] = useState(project.technical_requirements ?? "");
+  const [fin, setFin] = useState(project.financial_requirements ?? "");
+
+  const mut = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("projects")
+        .update({ technical_requirements: tech || null, financial_requirements: fin || null })
+        .eq("id", project.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("تم الحفظ");
+      qc.invalidateQueries({ queryKey: ["project", project.id] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-2">
+      <div className="rounded-lg border border-border bg-card p-5">
+        <h3 className="mb-3 font-semibold">متطلبات العرض الفني</h3>
+        <Textarea
+          rows={12}
+          value={tech}
+          onChange={(e) => setTech(e.target.value)}
+          placeholder="اكتب متطلبات العرض الفني للمشروع (المواصفات، المعايير، الجودة، الجدول الزمني المطلوب…)"
+        />
+      </div>
+      <div className="rounded-lg border border-border bg-card p-5">
+        <h3 className="mb-3 font-semibold">متطلبات العرض المالي</h3>
+        <Textarea
+          rows={12}
+          value={fin}
+          onChange={(e) => setFin(e.target.value)}
+          placeholder="اكتب متطلبات العرض المالي (شروط الدفع، الضمانات، نسبة الدفعة المقدمة، الغرامات…)"
+        />
+      </div>
+      <div className="lg:col-span-2 flex justify-end">
+        <Button onClick={() => mut.mutate()} disabled={mut.isPending} className="gap-2">
+          <Save className="h-4 w-4" />
+          {mut.isPending ? "جاري الحفظ…" : "حفظ المتطلبات"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 
 function ProjectFiles({ projectId, userId }: { projectId: string; userId: string }) {
   const qc = useQueryClient();
