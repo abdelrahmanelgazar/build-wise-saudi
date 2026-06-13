@@ -112,7 +112,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     // GitHub Pages SPA routing: redirect /?/path back to /path
     scripts: [
       {
-        dangerouslySetInnerHTML: `(function(){
+        dangerouslySetInnerHTML: {
+          __html: `(function(){
   var redirect = sessionStorage.redirect;
   delete sessionStorage.redirect;
   if (redirect && redirect !== location.href) {
@@ -131,6 +132,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     history.replaceState(null, null, route + qs + hash);
   }
 })();`,
+        },
       },
     ],
   }),
