@@ -14,16 +14,240 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      boq_items: {
+        Row: {
+          created_at: string
+          description_ar: string
+          equipment_cost: number | null
+          id: string
+          is_group: boolean
+          item_no: string
+          labor_cost: number | null
+          level: number
+          material_cost: number | null
+          parent_id: string | null
+          quantity: number | null
+          sort_order: number
+          subcontractor_cost: number | null
+          unit: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description_ar: string
+          equipment_cost?: number | null
+          id?: string
+          is_group?: boolean
+          item_no: string
+          labor_cost?: number | null
+          level?: number
+          material_cost?: number | null
+          parent_id?: string | null
+          quantity?: number | null
+          sort_order?: number
+          subcontractor_cost?: number | null
+          unit?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description_ar?: string
+          equipment_cost?: number | null
+          id?: string
+          is_group?: boolean
+          item_no?: string
+          labor_cost?: number | null
+          level?: number
+          material_cost?: number | null
+          parent_id?: string | null
+          quantity?: number | null
+          sort_order?: number
+          subcontractor_cost?: number | null
+          unit?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "boq_items_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "boq_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      price_analysis_items: {
+        Row: {
+          boq_item_id: string
+          created_at: string
+          description_ar: string
+          id: string
+          quantity: number
+          resource_id: string | null
+          resource_type: Database["public"]["Enums"]["resource_type"]
+          unit: string
+          unit_price: number
+          user_id: string
+        }
+        Insert: {
+          boq_item_id: string
+          created_at?: string
+          description_ar: string
+          id?: string
+          quantity?: number
+          resource_id?: string | null
+          resource_type: Database["public"]["Enums"]["resource_type"]
+          unit: string
+          unit_price?: number
+          user_id: string
+        }
+        Update: {
+          boq_item_id?: string
+          created_at?: string
+          description_ar?: string
+          id?: string
+          quantity?: number
+          resource_id?: string | null
+          resource_type?: Database["public"]["Enums"]["resource_type"]
+          unit?: string
+          unit_price?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_analysis_items_boq_item_id_fkey"
+            columns: ["boq_item_id"]
+            isOneToOne: false
+            referencedRelation: "boq_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_analysis_items_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "resources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      price_analysis_markup: {
+        Row: {
+          boq_item_id: string
+          indirect_pct: number
+          overhead_pct: number
+          profit_pct: number
+          risk_pct: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          boq_item_id: string
+          indirect_pct?: number
+          overhead_pct?: number
+          profit_pct?: number
+          risk_pct?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          boq_item_id?: string
+          indirect_pct?: number
+          overhead_pct?: number
+          profit_pct?: number
+          risk_pct?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_analysis_markup_boq_item_id_fkey"
+            columns: ["boq_item_id"]
+            isOneToOne: true
+            referencedRelation: "boq_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      resources: {
+        Row: {
+          code: string | null
+          created_at: string
+          id: string
+          name_ar: string
+          notes: string | null
+          type: Database["public"]["Enums"]["resource_type"]
+          unit: string
+          unit_price: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          id?: string
+          name_ar: string
+          notes?: string | null
+          type: Database["public"]["Enums"]["resource_type"]
+          unit: string
+          unit_price?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          id?: string
+          name_ar?: string
+          notes?: string | null
+          type?: Database["public"]["Enums"]["resource_type"]
+          unit?: string
+          unit_price?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      seed_demo_data: { Args: never; Returns: undefined }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "estimation_manager" | "estimator" | "viewer"
+      resource_type: "material" | "labor" | "equipment"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +374,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "estimation_manager", "estimator", "viewer"],
+      resource_type: ["material", "labor", "equipment"],
+    },
   },
 } as const
