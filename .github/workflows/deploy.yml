@@ -29,36 +29,51 @@ jobs:
           cache: "npm"
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Build project
         env:
           NITRO_PRESET: static
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
-          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
-          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
-          VITE_SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://desjchcthsjaeiplhuls.supabase.co' }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY || '' }}
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://desjchcthsjaeiplhuls.supabase.co' }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY || '' }}
+          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID || 'desjchcthsjaeiplhuls' }}
+          VITE_SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID || 'desjchcthsjaeiplhuls' }}
         run: npm run build
+
+      - name: Find output directory
+        id: find-output
+        run: |
+          if [ -d ".output/public" ]; then
+            echo "outdir=.output/public" >> $GITHUB_OUTPUT
+            echo "Found: .output/public"
+            ls .output/public | head -5
+          elif [ -d "dist" ]; then
+            echo "outdir=dist" >> $GITHUB_OUTPUT
+            echo "Found: dist"
+            ls dist | head -5
+          elif [ -d ".vinxi/build/client" ]; then
+            echo "outdir=.vinxi/build/client" >> $GITHUB_OUTPUT
+            echo "Found: .vinxi/build/client"
+          else
+            echo "Available directories after build:"
+            ls -la
+            echo "outdir=dist" >> $GITHUB_OUTPUT
+          fi
 
       - name: Copy 404.html for SPA routing
         run: |
-          if [ -d ".output/public" ]; then
-            cp .output/public/index.html .output/public/404.html
-            echo "Copied from .output/public"
-          elif [ -d "dist" ]; then
-            cp dist/index.html dist/404.html
-            echo "Copied from dist"
-          else
-            echo "No output directory found"
-            ls -la
+          OUTDIR="${{ steps.find-output.outputs.outdir }}"
+          if [ -f "$OUTDIR/index.html" ] && [ ! -f "$OUTDIR/404.html" ]; then
+            cp "$OUTDIR/index.html" "$OUTDIR/404.html"
+            echo "Copied 404.html"
           fi
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ".output/public"
+          path: ${{ steps.find-output.outputs.outdir }}
 
   deploy:
     environment:
