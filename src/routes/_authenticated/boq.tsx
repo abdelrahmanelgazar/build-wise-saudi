@@ -85,12 +85,17 @@ function buildTree(rows: BoqRow[]): TreeNode[] {
 
 function BoqPage() {
   const qc = useQueryClient();
+  const projectId = useActiveProjectId();
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   const { data: rows = [], isLoading } = useQuery({
-    queryKey: ["boq_items"],
+    queryKey: ["boq_items", projectId],
+    enabled: !!projectId,
     queryFn: async () => {
-      const { data, error } = await supabase.from("boq_items").select("*").eq("project_id", projectId!);
+      const { data, error } = await supabase
+        .from("boq_items")
+        .select("*")
+        .eq("project_id", projectId!);
       if (error) throw error;
       return data as BoqRow[];
     },
