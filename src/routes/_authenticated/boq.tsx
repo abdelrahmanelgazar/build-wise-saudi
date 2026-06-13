@@ -391,14 +391,18 @@ function NewBoqDialog({
   const [parentId, setParentId] = useState<string>("");
   const qc = useQueryClient();
 
+  const projectId = useActiveProjectId();
+
   const mut = useMutation({
     mutationFn: async () => {
       const { data: userData } = await supabase.auth.getUser();
       const user_id = userData.user?.id;
       if (!user_id) throw new Error("غير مسجل دخول");
+      if (!projectId) throw new Error("اختر مشروعاً أولاً");
       const level = parentId ? 1 : 0;
       const { error } = await supabase.from("boq_items").insert({
         user_id,
+        project_id: projectId,
         parent_id: parentId || null,
         item_no: itemNo,
         description_ar: desc,
