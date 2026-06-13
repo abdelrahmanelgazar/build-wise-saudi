@@ -339,6 +339,12 @@ function MarkupInput({
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const [draft, setDraft] = useState<string>(String(pct));
+  // Sync when prop changes (e.g., after another field saves)
+  useEffect(() => {
+    setDraft(String(pct));
+  }, [pct]);
+
   return (
     <div className="flex items-center justify-between gap-2">
       <span className="flex items-center gap-1.5 text-muted-foreground">
@@ -346,10 +352,11 @@ function MarkupInput({
         <Input
           type="number"
           step="0.5"
-          defaultValue={pct}
-          onBlur={(e) => {
-            const v = Number(e.target.value);
-            if (v !== pct) mut.mutate(v);
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={() => {
+            const v = Number(draft);
+            if (!Number.isNaN(v) && v !== pct) mut.mutate(v);
           }}
           className="h-6 w-14 px-1.5 text-center text-xs"
         />
