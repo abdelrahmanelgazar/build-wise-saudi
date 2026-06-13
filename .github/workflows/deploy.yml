@@ -30,15 +30,16 @@ jobs:
       - name: Install dependencies
         run: npm install --force
 
-      - name: Build project
+      - name: Build project (static output)
         env:
           NITRO_PRESET: static
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://desjchcthsjaeiplhuls.supabase.co' }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_placeholder' }}
-          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://desjchcthsjaeiplhuls.supabase.co' }}
-          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_placeholder' }}
-          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID || 'desjchcthsjaeiplhuls' }}
-          VITE_SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID || 'desjchcthsjaeiplhuls' }}
+          VITE_BASE_URL: /build-wise-saudi/
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+          VITE_SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
         run: npm run build
 
       - name: Find output directory
@@ -49,18 +50,26 @@ jobs:
           if [ -d ".output/public" ]; then
             echo "outdir=.output/public" >> $GITHUB_OUTPUT
             echo "=== Found: .output/public ==="
-            ls .output/public | head -10
+            ls .output/public | head -20
           elif [ -d "dist" ]; then
             echo "outdir=dist" >> $GITHUB_OUTPUT
             echo "=== Found: dist ==="
-            ls dist | head -10
+            ls dist | head -20
           elif [ -d ".vinxi/build/client" ]; then
             echo "outdir=.vinxi/build/client" >> $GITHUB_OUTPUT
             echo "=== Found: .vinxi/build/client ==="
+            ls .vinxi/build/client | head -20
           else
             echo "outdir=dist" >> $GITHUB_OUTPUT
             echo "=== No known output dir, defaulting to dist ==="
+            find . -name "index.html" -not -path "*/node_modules/*" | head -10
           fi
+
+      - name: Ensure .nojekyll exists (prevent Jekyll processing)
+        run: |
+          OUTDIR="${{ steps.find-output.outputs.outdir }}"
+          touch "$OUTDIR/.nojekyll"
+          echo "Created .nojekyll in $OUTDIR"
 
       - name: Copy 404.html for SPA routing
         run: |
@@ -69,6 +78,12 @@ jobs:
             cp "$OUTDIR/index.html" "$OUTDIR/404.html"
             echo "Copied 404.html to $OUTDIR"
           fi
+
+      - name: Show final output structure
+        run: |
+          OUTDIR="${{ steps.find-output.outputs.outdir }}"
+          echo "=== Final output directory: $OUTDIR ==="
+          ls -la "$OUTDIR" | head -30
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
