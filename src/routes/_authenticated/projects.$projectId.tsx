@@ -207,15 +207,24 @@ function QuickLink({
 function ProjectInfoForm({ project }: { project: Project }) {
   const qc = useQueryClient();
   const [form, setForm] = useState({
+    project_no: project.project_no != null ? String(project.project_no) : "",
+    code: project.code ?? "",
     name: project.name,
     client_name: project.client_name ?? "",
     location: project.location ?? "",
+    area: project.area ?? "",
+    scope_of_work: project.scope_of_work ?? "",
+    contract_type: project.contract_type ?? "",
     status: project.status,
     estimated_value: String(project.estimated_value ?? ""),
     budget: String(project.budget ?? ""),
+    tender_entry_date: project.tender_entry_date ?? "",
+    last_submit_date: project.last_submit_date ?? "",
+    last_rfi_date: project.last_rfi_date ?? "",
     start_date: project.start_date ?? "",
     end_date: project.end_date ?? "",
     submission_date: project.submission_date ?? "",
+    note: project.note ?? "",
     notes: project.notes ?? "",
   });
 
@@ -224,15 +233,24 @@ function ProjectInfoForm({ project }: { project: Project }) {
       const { error } = await supabase
         .from("projects")
         .update({
+          project_no: form.project_no === "" ? null : Number(form.project_no),
+          code: form.code || null,
           name: form.name,
           client_name: form.client_name || null,
           location: form.location || null,
+          area: form.area || null,
+          scope_of_work: form.scope_of_work || null,
+          contract_type: form.contract_type || null,
           status: form.status as Status,
           estimated_value: Number(form.estimated_value) || 0,
           budget: Number(form.budget) || 0,
+          tender_entry_date: form.tender_entry_date || null,
+          last_submit_date: form.last_submit_date || null,
+          last_rfi_date: form.last_rfi_date || null,
           start_date: form.start_date || null,
           end_date: form.end_date || null,
           submission_date: form.submission_date || null,
+          note: form.note || null,
           notes: form.notes || null,
         })
         .eq("id", project.id);
@@ -249,6 +267,12 @@ function ProjectInfoForm({ project }: { project: Project }) {
   return (
     <div className="rounded-lg border border-border bg-card p-5">
       <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="رقم المشروع">
+          <Input type="number" value={form.project_no} onChange={(e) => setForm({ ...form, project_no: e.target.value })} />
+        </Field>
+        <Field label="الكود">
+          <Input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} />
+        </Field>
         <Field label="اسم المشروع">
           <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
         </Field>
@@ -268,11 +292,29 @@ function ProjectInfoForm({ project }: { project: Project }) {
         <Field label="الموقع">
           <Input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
         </Field>
+        <Field label="المنطقة">
+          <Input value={form.area} onChange={(e) => setForm({ ...form, area: e.target.value })} />
+        </Field>
+        <Field label="نوع العقد">
+          <Input value={form.contract_type} onChange={(e) => setForm({ ...form, contract_type: e.target.value })} />
+        </Field>
         <Field label="القيمة التقديرية (ر.س)">
           <Input type="number" value={form.estimated_value} onChange={(e) => setForm({ ...form, estimated_value: e.target.value })} />
         </Field>
         <Field label="الميزانية (ر.س)">
           <Input type="number" value={form.budget} onChange={(e) => setForm({ ...form, budget: e.target.value })} />
+        </Field>
+        <Field label="تاريخ استلام المناقصة">
+          <Input type="date" value={form.tender_entry_date} onChange={(e) => setForm({ ...form, tender_entry_date: e.target.value })} />
+        </Field>
+        <Field label="تاريخ آخر تقديم">
+          <Input type="date" value={form.last_submit_date} onChange={(e) => setForm({ ...form, last_submit_date: e.target.value })} />
+        </Field>
+        <Field label="تاريخ آخر استفسار (RFI)">
+          <Input type="date" value={form.last_rfi_date} onChange={(e) => setForm({ ...form, last_rfi_date: e.target.value })} />
+        </Field>
+        <Field label="تاريخ التسليم">
+          <Input type="date" value={form.submission_date} onChange={(e) => setForm({ ...form, submission_date: e.target.value })} />
         </Field>
         <Field label="تاريخ البداية">
           <Input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} />
@@ -280,12 +322,17 @@ function ProjectInfoForm({ project }: { project: Project }) {
         <Field label="تاريخ النهاية">
           <Input type="date" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} />
         </Field>
-        <Field label="تاريخ التسليم">
-          <Input type="date" value={form.submission_date} onChange={(e) => setForm({ ...form, submission_date: e.target.value })} />
+      </div>
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <Field label="نطاق العمل">
+          <Textarea rows={3} value={form.scope_of_work} onChange={(e) => setForm({ ...form, scope_of_work: e.target.value })} />
+        </Field>
+        <Field label="ملاحظة (Note)">
+          <Textarea rows={3} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
         </Field>
       </div>
       <div className="mt-4">
-        <Field label="ملاحظات">
+        <Field label="ملاحظات إضافية">
           <Textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
         </Field>
       </div>
@@ -299,55 +346,6 @@ function ProjectInfoForm({ project }: { project: Project }) {
   );
 }
 
-function RequirementsForm({ project }: { project: Project }) {
-  const qc = useQueryClient();
-  const [tech, setTech] = useState(project.technical_requirements ?? "");
-  const [fin, setFin] = useState(project.financial_requirements ?? "");
-
-  const mut = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase
-        .from("projects")
-        .update({ technical_requirements: tech || null, financial_requirements: fin || null })
-        .eq("id", project.id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("تم الحفظ");
-      qc.invalidateQueries({ queryKey: ["project", project.id] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  return (
-    <div className="grid gap-4 lg:grid-cols-2">
-      <div className="rounded-lg border border-border bg-card p-5">
-        <h3 className="mb-3 font-semibold">متطلبات العرض الفني</h3>
-        <Textarea
-          rows={12}
-          value={tech}
-          onChange={(e) => setTech(e.target.value)}
-          placeholder="اكتب متطلبات العرض الفني للمشروع (المواصفات، المعايير، الجودة، الجدول الزمني المطلوب…)"
-        />
-      </div>
-      <div className="rounded-lg border border-border bg-card p-5">
-        <h3 className="mb-3 font-semibold">متطلبات العرض المالي</h3>
-        <Textarea
-          rows={12}
-          value={fin}
-          onChange={(e) => setFin(e.target.value)}
-          placeholder="اكتب متطلبات العرض المالي (شروط الدفع، الضمانات، نسبة الدفعة المقدمة، الغرامات…)"
-        />
-      </div>
-      <div className="lg:col-span-2 flex justify-end">
-        <Button onClick={() => mut.mutate()} disabled={mut.isPending} className="gap-2">
-          <Save className="h-4 w-4" />
-          {mut.isPending ? "جاري الحفظ…" : "حفظ المتطلبات"}
-        </Button>
-      </div>
-    </div>
-  );
-}
 
 function ProjectFiles({ projectId, userId }: { projectId: string; userId: string }) {
   const qc = useQueryClient();
