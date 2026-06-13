@@ -221,7 +221,7 @@ function NewProjectDialog() {
   const [name, setName] = useState("");
   const [client, setClient] = useState("");
   const [location, setLocation] = useState("");
-  const [status, setStatus] = useState<Status>("draft");
+  const [status, setStatus] = useState<Status>("studying");
   const [estValue, setEstValue] = useState("");
   const qc = useQueryClient();
 
@@ -251,7 +251,7 @@ function NewProjectDialog() {
       qc.invalidateQueries({ queryKey: ["projects"] });
       setActiveProjectId(p.id);
       setOpen(false);
-      setName(""); setClient(""); setLocation(""); setEstValue(""); setStatus("draft");
+      setName(""); setClient(""); setLocation(""); setEstValue(""); setStatus("studying");
     },
     onError: (e: Error) => toast.error(e.message),
   });
