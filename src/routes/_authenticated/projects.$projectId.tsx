@@ -410,10 +410,29 @@ function ProjectFiles({ projectId, userId }: { projectId: string; userId: string
     },
   });
 
+  const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25 MB
+  const ALLOWED_EXTS = [
+    "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx",
+    "png", "jpg", "jpeg", "gif", "webp", "svg",
+    "dwg", "dxf", "txt", "csv", "zip", "rar",
+  ];
+
   async function handleUpload(file: File) {
+    const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+    if (!ALLOWED_EXTS.includes(ext)) {
+      toast.error(`نوع الملف غير مدعوم (.${ext}). الأنواع المسموحة: ${ALLOWED_EXTS.join(", ")}`);
+      if (fileRef.current) fileRef.current.value = "";
+      return;
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error(`حجم الملف يتجاوز الحد الأقصى (25 MB)`);
+      if (fileRef.current) fileRef.current.value = "";
+      return;
+    }
     setUploading(true);
     try {
-      const path = `${userId}/${projectId}/${Date.now()}_${file.name}`;
+      const safeName = file.name.replace(/[^\w.\-]+/g, "_");
+      const path = `${userId}/${projectId}/${Date.now()}_${safeName}`;
       const { error: upErr } = await supabase.storage.from("project-files").upload(path, file);
       if (upErr) throw upErr;
       const { error: insErr } = await supabase.from("project_files").insert({
@@ -446,8 +465,16 @@ function ProjectFiles({ projectId, userId }: { projectId: string; userId: string
 
   async function handleDelete(f: ProjectFile) {
     if (!confirm(`حذف الملف "${f.file_name}"؟`)) return;
-    await supabase.storage.from("project-files").remove([f.file_path]);
-    await supabase.from("project_files").delete().eq("id", f.id);
+    const { error: storageErr } = await supabase.storage.from("project-files").remove([f.file_path]);
+    if (storageErr) {
+      toast.error(`فشل حذف الملف من التخزين: ${storageErr.message}`);
+      return;
+    }
+    const { error: dbErr } = await supabase.from("project_files").delete().eq("id", f.id);
+    if (dbErr) {
+      toast.error(`فشل حذف السجل: ${dbErr.message}`);
+      return;
+    }
     toast.success("تم الحذف");
     qc.invalidateQueries({ queryKey: ["project_files", projectId] });
   }
