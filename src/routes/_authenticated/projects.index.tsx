@@ -350,6 +350,7 @@ function NewProjectDialog() {
       setActiveProjectId(p.id);
       setOpen(false);
       setForm({
+        project_no: "",
         code: "", client: "", name: "", location: "", area: "",
         scope_of_work: "", contract_type: "",
         tender_entry_date: "", last_submit_date: "", last_rfi_date: "",
