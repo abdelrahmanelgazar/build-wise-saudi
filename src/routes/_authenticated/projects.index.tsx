@@ -31,11 +31,18 @@ type Project = Database["public"]["Tables"]["projects"]["Row"];
 type Status = Database["public"]["Enums"]["project_status"];
 
 const STATUS_META: Record<Status, { label: string; cls: string }> = {
-  draft: { label: "مسودة", cls: "bg-muted/60 text-muted-foreground border-border/60" },
-  in_progress: { label: "جاري", cls: "bg-primary/15 text-primary border-primary/30" },
-  awarded: { label: "مرسي", cls: "bg-emerald-500/15 text-emerald-500 border-emerald-500/30" },
-  rejected: { label: "مرفوض", cls: "bg-red-500/15 text-red-500 border-red-500/30" },
-  completed: { label: "منتهي", cls: "bg-blue-500/15 text-blue-500 border-blue-500/30" },
+  studying: { label: "قيد الدراسة", cls: "bg-muted/60 text-muted-foreground border-border/60" },
+  submitted_to_medial_man: { label: "مُرسل للوسيط (GM)", cls: "bg-amber-500/15 text-amber-500 border-amber-500/30" },
+  submitted_to_client: { label: "مُرسل للعميل", cls: "bg-primary/15 text-primary border-primary/30" },
+  waiting_for_reply: { label: "بانتظار الرد", cls: "bg-yellow-500/15 text-yellow-600 border-yellow-500/30" },
+  inquiries_sent: { label: "استفسارات للعميل", cls: "bg-cyan-500/15 text-cyan-500 border-cyan-500/30" },
+  answers_received: { label: "ردود مستلمة - دراسة", cls: "bg-indigo-500/15 text-indigo-500 border-indigo-500/30" },
+  on_hold: { label: "مُعلّق", cls: "bg-orange-500/15 text-orange-500 border-orange-500/30" },
+  client_rejected: { label: "رفض العميل", cls: "bg-red-500/15 text-red-500 border-red-500/30" },
+  construction_ongoing: { label: "تنفيذ جاري", cls: "bg-emerald-500/15 text-emerald-500 border-emerald-500/30" },
+  construction_complete: { label: "تنفيذ مكتمل", cls: "bg-teal-500/15 text-teal-500 border-teal-500/30" },
+  finished: { label: "منتهي", cls: "bg-blue-500/15 text-blue-500 border-blue-500/30" },
+  closed: { label: "مغلق", cls: "bg-muted/60 text-muted-foreground border-border/60" },
 };
 
 export const Route = createFileRoute("/_authenticated/projects/")({
@@ -214,7 +221,7 @@ function NewProjectDialog() {
   const [name, setName] = useState("");
   const [client, setClient] = useState("");
   const [location, setLocation] = useState("");
-  const [status, setStatus] = useState<Status>("draft");
+  const [status, setStatus] = useState<Status>("studying");
   const [estValue, setEstValue] = useState("");
   const qc = useQueryClient();
 
@@ -244,7 +251,7 @@ function NewProjectDialog() {
       qc.invalidateQueries({ queryKey: ["projects"] });
       setActiveProjectId(p.id);
       setOpen(false);
-      setName(""); setClient(""); setLocation(""); setEstValue(""); setStatus("draft");
+      setName(""); setClient(""); setLocation(""); setEstValue(""); setStatus("studying");
     },
     onError: (e: Error) => toast.error(e.message),
   });
