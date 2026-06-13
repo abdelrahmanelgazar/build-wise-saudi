@@ -26,6 +26,9 @@ import { Pencil, Plus, Search, Trash2, Boxes, Hammer, Truck } from "lucide-react
 import { fmtSAR } from "@/lib/format";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
+import { useActiveProjectId } from "@/lib/active-project";
+import { Link } from "@tanstack/react-router";
+import { FolderPlus } from "lucide-react";
 
 type ResourceRow = Database["public"]["Tables"]["resources"]["Row"];
 type ResourceType = Database["public"]["Enums"]["resource_type"];
