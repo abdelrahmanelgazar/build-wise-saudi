@@ -442,6 +442,12 @@ function NewProjectDialog() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-1.5">
+              <Label>مدة المشروع</Label>
+              <Input value={form.duration} onChange={(e) => set("duration", e.target.value)} placeholder="مثال: 12 شهر" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-1.5">
               <Label>الحالة</Label>
               <Select value={form.status} onValueChange={(v) => set("status", v as Status)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
