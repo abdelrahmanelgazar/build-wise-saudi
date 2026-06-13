@@ -35,7 +35,7 @@ type NavItem = {
 };
 
 const NAV: NavItem[] = [
-  { to: "/dashboard", label: "لوحة التحكم", icon: LayoutDashboard, enabled: false },
+  { to: "/dashboard", label: "لوحة التحكم", icon: LayoutDashboard, enabled: true },
   { to: "/projects", label: "المشاريع", icon: FileText, enabled: true },
   { to: "/boq", label: "جدول الكميات", icon: Calculator, enabled: true },
   { to: "/price-analysis", label: "تحليل الأسعار", icon: TrendingUp, enabled: true },
