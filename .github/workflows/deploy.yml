@@ -26,18 +26,17 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "npm"
 
       - name: Install dependencies
-        run: npm ci --legacy-peer-deps
+        run: npm install --force
 
       - name: Build project
         env:
           NITRO_PRESET: static
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://desjchcthsjaeiplhuls.supabase.co' }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY || '' }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_placeholder' }}
           SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://desjchcthsjaeiplhuls.supabase.co' }}
-          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY || '' }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_placeholder' }}
           SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID || 'desjchcthsjaeiplhuls' }}
           VITE_SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID || 'desjchcthsjaeiplhuls' }}
         run: npm run build
@@ -45,21 +44,22 @@ jobs:
       - name: Find output directory
         id: find-output
         run: |
+          echo "=== Listing root directory ==="
+          ls -la
           if [ -d ".output/public" ]; then
             echo "outdir=.output/public" >> $GITHUB_OUTPUT
-            echo "Found: .output/public"
-            ls .output/public | head -5
+            echo "=== Found: .output/public ==="
+            ls .output/public | head -10
           elif [ -d "dist" ]; then
             echo "outdir=dist" >> $GITHUB_OUTPUT
-            echo "Found: dist"
-            ls dist | head -5
+            echo "=== Found: dist ==="
+            ls dist | head -10
           elif [ -d ".vinxi/build/client" ]; then
             echo "outdir=.vinxi/build/client" >> $GITHUB_OUTPUT
-            echo "Found: .vinxi/build/client"
+            echo "=== Found: .vinxi/build/client ==="
           else
-            echo "Available directories after build:"
-            ls -la
             echo "outdir=dist" >> $GITHUB_OUTPUT
+            echo "=== No known output dir, defaulting to dist ==="
           fi
 
       - name: Copy 404.html for SPA routing
@@ -67,7 +67,7 @@ jobs:
           OUTDIR="${{ steps.find-output.outputs.outdir }}"
           if [ -f "$OUTDIR/index.html" ] && [ ! -f "$OUTDIR/404.html" ]; then
             cp "$OUTDIR/index.html" "$OUTDIR/404.html"
-            echo "Copied 404.html"
+            echo "Copied 404.html to $OUTDIR"
           fi
 
       - name: Upload artifact
