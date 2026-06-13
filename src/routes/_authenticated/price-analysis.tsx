@@ -319,25 +319,21 @@ function MarkupInput({
       const { data: userData } = await supabase.auth.getUser();
       const user_id = userData.user?.id;
       if (!user_id) throw new Error("غير مسجل دخول");
-      if (markup) {
-        const payload: Partial<Markup> = { [field]: newPct };
-        const { error } = await supabase
-          .from("price_analysis_markup")
-          .update(payload)
-          .eq("boq_item_id", boqItemId);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("price_analysis_markup").insert({
-          boq_item_id: boqItemId,
-          user_id,
-          project_id: projectId,
-          indirect_pct: field === "indirect_pct" ? newPct : 5,
-          overhead_pct: field === "overhead_pct" ? newPct : 8,
-          risk_pct: field === "risk_pct" ? newPct : 3,
-          profit_pct: field === "profit_pct" ? newPct : 10,
-        });
-        if (error) throw error;
-      }
+      // Upsert to avoid race on first-save when two inputs blur concurrently
+      const payload = {
+        boq_item_id: boqItemId,
+        user_id,
+        project_id: projectId,
+        indirect_pct: markup?.indirect_pct ?? 5,
+        overhead_pct: markup?.overhead_pct ?? 8,
+        risk_pct: markup?.risk_pct ?? 3,
+        profit_pct: markup?.profit_pct ?? 10,
+        [field]: newPct,
+      };
+      const { error } = await supabase
+        .from("price_analysis_markup")
+        .upsert(payload, { onConflict: "boq_item_id" });
+      if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["pa_markup", boqItemId] }),
     onError: (e: Error) => toast.error(e.message),
