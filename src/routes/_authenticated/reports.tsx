@@ -185,12 +185,12 @@ function ProjectsReport() {
               return (
                 <tr key={p.id} className="hover:bg-muted/30">
                   <td className="px-3 py-2 tabular-nums">{p.project_no ?? "—"}</td>
-                  <td className="px-3 py-2 font-mono text-[11px]">{(p as any).code || "—"}</td>
+                  <td className="px-3 py-2 font-mono text-[11px]">{p.code || "—"}</td>
                   <td className="px-3 py-2 font-medium">{p.name}</td>
                   <td className="px-3 py-2 text-muted-foreground">{p.client_name || "—"}</td>
                   <td className="px-3 py-2 text-muted-foreground">{p.location || "—"}</td>
                   <td className="px-3 py-2"><Badge variant="outline" className={m.cls}>{m.label}</Badge></td>
-                  <td className="px-3 py-2 text-muted-foreground">{(p as any).duration || "—"}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{p.duration || "—"}</td>
                   <td className="px-3 py-2 tabular-nums">{fmtSAR(Number(p.estimated_value ?? 0))}</td>
                   <td className="px-3 py-2 tabular-nums">{fmtSAR(Number(p.budget ?? 0))}</td>
                 </tr>
