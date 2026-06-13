@@ -149,6 +149,23 @@ function BoqPage() {
     return out.filter((r) => r.visible);
   }, [tree, expanded]);
 
+  if (!projectId) {
+    return (
+      <div className="p-6">
+        <div className="rounded-lg border border-dashed border-border bg-card p-10 text-center">
+          <FolderPlus className="mx-auto h-10 w-10 text-muted-foreground opacity-50" />
+          <h2 className="mt-3 text-lg font-semibold">اختر مشروعاً للبدء</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            بنود جدول الكميات تنتمي لمشروع. اختر مشروعاً من القائمة الجانبية أو أنشئ مشروعاً جديداً.
+          </p>
+          <Link to="/projects" className="mt-4 inline-block">
+            <Button>الذهاب للمشاريع</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-[calc(100vh-3.5rem)] flex-col p-6">
       <PageHeader
