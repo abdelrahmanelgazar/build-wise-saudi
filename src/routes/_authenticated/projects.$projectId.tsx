@@ -51,6 +51,7 @@ const STATUS_META: Record<Status, { label: string; cls: string }> = {
 };
 
 export const Route = createFileRoute("/_authenticated/projects/$projectId")({
+  head: () => ({ meta: [{ title: 'تفاصيل المشروع — تقديري' }, { name: "description", content: 'منصة تقديري لتسعير المقاولات وإدارة المشاريع والمناقصات وتحليل الأسعار في السوق السعودي.' }, { property: "og:title", content: 'تفاصيل المشروع — تقديري' }, { property: "og:description", content: 'منصة تقديري لتسعير المقاولات وإدارة المشاريع والمناقصات وتحليل الأسعار في السوق السعودي.' }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }),
   component: ProjectDetail,
 });
 
@@ -154,7 +155,7 @@ function ProjectDetail() {
           <div className="mt-6 grid gap-3 sm:grid-cols-3">
             <QuickLink to="/boq" icon={Calculator} title="جدول الكميات" desc="بنود الـ BOQ الخاصة بالمشروع" />
             <QuickLink to="/price-analysis" icon={TrendingUp} title="تحليل الأسعار" desc="موارد وتكاليف كل بند" />
-            <QuickLink to="/resources" icon={DatabaseIcon} title="مكتبة البيانات" desc="مواد وعمالة ومعدات" />
+            <QuickLink to="/resources" icon={DatabaseIcon} title="عروض الأسعار" desc="الموردين ومقاولي الباطن وتصنيف CSI" />
           </div>
         </TabsContent>
 

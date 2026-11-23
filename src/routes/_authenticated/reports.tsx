@@ -40,6 +40,7 @@ const STATUS_META: Record<Status, { label: string; cls: string }> = {
 const RES_LABEL: Record<string, string> = { material: "مواد", labor: "عمالة", equipment: "معدات" };
 
 export const Route = createFileRoute("/_authenticated/reports")({
+  head: () => ({ meta: [{ title: 'التقارير — تقديري' }, { name: "description", content: 'منصة تقديري لتسعير المقاولات وإدارة المشاريع والمناقصات وتحليل الأسعار في السوق السعودي.' }, { property: "og:title", content: 'التقارير — تقديري' }, { property: "og:description", content: 'منصة تقديري لتسعير المقاولات وإدارة المشاريع والمناقصات وتحليل الأسعار في السوق السعودي.' }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }),
   component: ReportsPage,
 });
 
@@ -59,7 +60,7 @@ function ReportsPage() {
         <TabsList className="print:hidden">
           <TabsTrigger value="projects" className="gap-1.5"><FolderKanban className="h-4 w-4" /> المشاريع</TabsTrigger>
           <TabsTrigger value="boq" className="gap-1.5"><Calculator className="h-4 w-4" /> BOQ التفصيلي</TabsTrigger>
-          <TabsTrigger value="resources" className="gap-1.5"><DatabaseIcon className="h-4 w-4" /> الموارد</TabsTrigger>
+          <TabsTrigger value="resources" className="gap-1.5"><DatabaseIcon className="h-4 w-4" /> عروض الأسعار</TabsTrigger>
           <TabsTrigger value="summary" className="gap-1.5"><FileBarChart className="h-4 w-4" /> الملخص التنفيذي</TabsTrigger>
         </TabsList>
 
@@ -228,7 +229,7 @@ function BoqReport() {
   });
 
   useEffect(() => {
-    if (!projectId && projects.length > 0) setProjectId(projects[0].id);
+    if (!projectId && projects.length > 0) setProjectId(projects[0]?.id ?? "");
   }, [projectId, projects]);
 
   const { data: items = [], isLoading } = useQuery({
@@ -385,7 +386,7 @@ function ResourcesReport() {
 
   return (
     <div className="rounded-lg border border-border bg-card p-5">
-      <Toolbar title="تقرير الموارد" onExcel={exportExcel} />
+      <Toolbar title="تقرير عروض الأسعار والموارد" onExcel={exportExcel} />
 
       <div className="mb-3 flex flex-wrap items-center gap-3 print:hidden">
         <Select value={type} onValueChange={(v) => setType(v as typeof type)}>
@@ -400,9 +401,9 @@ function ResourcesReport() {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3 mb-4">
-        <Stat label="مواد" value={String(byType.material ?? 0)} />
-        <Stat label="عمالة" value={String(byType.labor ?? 0)} />
-        <Stat label="معدات" value={String(byType.equipment ?? 0)} />
+        <Stat label="مواد" value={String(byType["material"] ?? 0)} />
+        <Stat label="عمالة" value={String(byType["labor"] ?? 0)} />
+        <Stat label="معدات" value={String(byType["equipment"] ?? 0)} />
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-border">
@@ -455,7 +456,7 @@ function ExecutiveSummary() {
   });
 
   useEffect(() => {
-    if (!projectId && projects.length > 0) setProjectId(projects[0].id);
+    if (!projectId && projects.length > 0) setProjectId(projects[0]?.id ?? "");
   }, [projectId, projects]);
 
   const project = projects.find((p) => p.id === projectId);
@@ -496,9 +497,9 @@ function ExecutiveSummary() {
       { "البند": "إجمالي تكلفة BOQ", "القيمة": stats?.boqTotal ?? 0 },
       { "البند": "عدد بنود BOQ", "القيمة": stats?.boqCount ?? 0 },
       { "البند": "عدد الموارد", "القيمة": stats?.resourcesCount ?? 0 },
-      { "البند": "مواد", "القيمة": stats?.resByType.material ?? 0 },
-      { "البند": "عمالة", "القيمة": stats?.resByType.labor ?? 0 },
-      { "البند": "معدات", "القيمة": stats?.resByType.equipment ?? 0 },
+      { "البند": "مواد", "القيمة": stats?.resByType["material"] ?? 0 },
+      { "البند": "عمالة", "القيمة": stats?.resByType["labor"] ?? 0 },
+      { "البند": "معدات", "القيمة": stats?.resByType["equipment"] ?? 0 },
     ];
     downloadXlsx(rows, `summary-${project.name}`, "ملخص");
   };
@@ -546,9 +547,9 @@ function ExecutiveSummary() {
           </div>
 
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
-            <Stat label="مواد" value={String(stats?.resByType.material ?? 0)} />
-            <Stat label="عمالة" value={String(stats?.resByType.labor ?? 0)} />
-            <Stat label="معدات" value={String(stats?.resByType.equipment ?? 0)} />
+            <Stat label="مواد" value={String(stats?.resByType["material"] ?? 0)} />
+            <Stat label="عمالة" value={String(stats?.resByType["labor"] ?? 0)} />
+            <Stat label="معدات" value={String(stats?.resByType["equipment"] ?? 0)} />
           </div>
 
           {project.estimated_value && stats?.boqTotal ? (

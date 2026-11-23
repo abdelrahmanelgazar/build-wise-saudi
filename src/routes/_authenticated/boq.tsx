@@ -1,14 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -22,61 +20,78 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { FolderPlus, Plus, Download } from "lucide-react";
 import {
-  ChevronDown,
-  ChevronLeft,
-  FileSpreadsheet,
-  FolderPlus,
-  Plus,
-  Trash2,
-  TrendingUp,
-} from "lucide-react";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { exportBoq } from "@/lib/boq-export";
 import { PageHeader } from "./resources";
-import { fmtNumber, fmtSAR } from "@/lib/format";
+import { fmtSAR } from "@/lib/format";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
 import { useActiveProjectId } from "@/lib/active-project";
+import { ImportExcelDialog } from "@/components/boq/import-excel-dialog";
+import { BoqGrid, type TreeNode } from "@/components/boq/boq-grid";
+import { useLanguage } from "@/lib/i18n";
 
 type BoqRow = Database["public"]["Tables"]["boq_items"]["Row"];
 
 export const Route = createFileRoute("/_authenticated/boq")({
-  head: () => ({ meta: [{ title: "جدول الكميات — تقديري" }] }),
+  head: () => ({ meta: [{ title: 'جدول الكميات — تقديري' }, { name: "description", content: 'منصة تقديري لتسعير المقاولات وإدارة المشاريع والمناقصات وتحليل الأسعار في السوق السعودي.' }, { property: "og:title", content: 'جدول الكميات — تقديري' }, { property: "og:description", content: 'منصة تقديري لتسعير المقاولات وإدارة المشاريع والمناقصات وتحليل الأسعار في السوق السعودي.' }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }),
   component: BoqPage,
 });
 
-type TreeNode = BoqRow & { children: TreeNode[]; rolledTotal: number };
 
-function buildTree(rows: BoqRow[]): TreeNode[] {
+function buildTree(
+  rows: BoqRow[],
+  paSellingRates: Map<string, number>,
+  sheetTotals?: Record<string, number>
+): TreeNode[] {
   const map = new Map<string, TreeNode>();
-  rows.forEach((r) => map.set(r.id, { ...r, children: [], rolledTotal: 0 }));
+  rows.forEach((r) =>
+    map.set(r.id, { ...r, children: [], rolledTotal: 0, unitRate: 0 }),
+  );
   const roots: TreeNode[] = [];
   rows.forEach((r) => {
-    const node = map.get(r.id)!;
+    const node = map.get(r.id);
+    if (!node) return;
     if (r.parent_id && map.has(r.parent_id)) {
-      map.get(r.parent_id)!.children.push(node);
+      map.get(r.parent_id)?.children.push(node);
     } else {
       roots.push(node);
     }
   });
-  // sort by sort_order
   const sortRec = (arr: TreeNode[]) => {
     arr.sort((a, b) => a.sort_order - b.sort_order);
     arr.forEach((n) => sortRec(n.children));
   };
   sortRec(roots);
-  // compute rolled totals
   const computeTotal = (n: TreeNode): number => {
     if (n.is_group) {
+      n.unitRate = 0;
       n.rolledTotal = n.children.reduce((s, c) => s + computeTotal(c), 0);
     } else {
-      const unitRate =
-        Number(n.material_cost ?? 0) +
-        Number(n.labor_cost ?? 0) +
-        Number(n.equipment_cost ?? 0) +
-        Number(n.subcontractor_cost ?? 0);
-      n.rolledTotal = unitRate * Number(n.quantity ?? 0);
+      if (sheetTotals && n.description_ar && sheetTotals[n.description_ar] !== undefined) {
+        n.rolledTotal = sheetTotals[n.description_ar] ?? 0;
+        n.unitRate = Number(n.quantity) ? n.rolledTotal / Number(n.quantity) : n.rolledTotal;
+      } else {
+        // Prefer the unit selling price computed from price analysis when present;
+        // otherwise fall back to the per-row cost breakdown columns.
+        const fromPa = paSellingRates.get(n.id);
+        n.unitRate =
+          typeof fromPa === "number" && fromPa > 0
+            ? fromPa
+            : Number(n.material_cost ?? 0) +
+              Number(n.labor_cost ?? 0) +
+              Number(n.equipment_cost ?? 0) +
+              Number(n.subcontractor_cost ?? 0);
+        n.rolledTotal = n.unitRate * Number(n.quantity ?? 0);
+      }
     }
     return n.rolledTotal;
   };
@@ -85,35 +100,184 @@ function buildTree(rows: BoqRow[]): TreeNode[] {
 }
 
 function BoqPage() {
+  const { t, language } = useLanguage();
   const qc = useQueryClient();
   const projectId = useActiveProjectId();
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [activeSheet, setActiveSheet] = useState<string>("");
 
-  const { data: rows = [], isLoading } = useQuery({
+  const { data: rows = [] } = useQuery({
     queryKey: ["boq_items", projectId],
     enabled: !!projectId,
     queryFn: async () => {
+      if (!projectId) throw new Error("اختر مشروعاً أولاً");
       const { data, error } = await supabase
         .from("boq_items")
         .select("*")
-        .eq("project_id", projectId!);
+        .eq("project_id", projectId);
       if (error) throw error;
       return data as BoqRow[];
     },
   });
 
-  // expand all by default when data loads
+  const { isLoading: isProjLoading, data: project } = useQuery({
+    queryKey: ["project", projectId],
+    enabled: !!projectId,
+    queryFn: async () => {
+      if (!projectId) throw new Error("اختر مشروعاً أولاً");
+      const { data, error } = await supabase
+        .from("projects")
+        .select("id, name, excel_headers, excel_pre_headers, excel_sheets_order")
+        .eq("id", projectId)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const sheetNames = useMemo(() => {
+    let names = Array.from(new Set(rows.map((r) => r.sheet_name || "Sheet1")));
+    if (names.length === 0) names.push("Sheet1");
+    
+    // Sort based on original excel_sheets_order if available
+    const order = project?.excel_sheets_order;
+    if (Array.isArray(order) && order.length > 0) {
+      names.sort((a, b) => {
+        const idxA = order.indexOf(a);
+        const idxB = order.indexOf(b);
+        // If not found in order array, put them at the end
+        if (idxA === -1 && idxB === -1) return a.localeCompare(b);
+        if (idxA === -1) return 1;
+        if (idxB === -1) return -1;
+        return idxA - idxB;
+      });
+    }
+    return names;
+  }, [rows, project?.excel_sheets_order]);
+
+  useEffect(() => {
+    if (!activeSheet && sheetNames.length > 0) {
+      setActiveSheet(sheetNames[0] ?? "Sheet1");
+    } else if (activeSheet && !sheetNames.includes(activeSheet) && sheetNames.length > 0) {
+      setActiveSheet(sheetNames[0] ?? "Sheet1");
+    }
+  }, [sheetNames, activeSheet]);
+
+  const activeRows = useMemo(() => rows.filter(r => (r.sheet_name || "Sheet1") === activeSheet), [rows, activeSheet]);
+
+  const extraHeaders = useMemo(() => {
+    const h = (project?.excel_headers as any);
+    if (!h) return [];
+    if (Array.isArray(h)) return h;
+    return Array.isArray(h[activeSheet]) ? h[activeSheet] : [];
+  }, [project, activeSheet]);
+
+  const extraPreHeaders = useMemo(() => {
+    const h = (project?.excel_pre_headers as any);
+    if (!h) return [];
+    if (Array.isArray(h)) return h;
+    return Array.isArray(h[activeSheet]) ? h[activeSheet] : [];
+  }, [project, activeSheet]);
+
+  // Pull all price-analysis rows + markup for this project to compute the
+  // per-item unit selling price displayed in the BOQ "rate" column.
+  const { data: paItems = [] } = useQuery({
+    queryKey: ["pa_items_project", projectId],
+    enabled: !!projectId,
+    queryFn: async () => {
+      if (!projectId) throw new Error("اختر مشروعاً أولاً");
+      const { data, error } = await supabase
+        .from("price_analysis_items")
+        .select("boq_item_id, quantity, unit_price")
+        .eq("project_id", projectId);
+      if (error) throw error;
+      return data as { boq_item_id: string; quantity: number; unit_price: number }[];
+    },
+  });
+
+  const { data: paMarkups = [] } = useQuery({
+    queryKey: ["pa_markup_project", projectId],
+    enabled: !!projectId,
+    queryFn: async () => {
+      if (!projectId) throw new Error("اختر مشروعاً أولاً");
+      const { data, error } = await supabase
+        .from("price_analysis_markup")
+        .select("boq_item_id, indirect_pct, overhead_pct, risk_pct, profit_pct")
+        .eq("project_id", projectId);
+      if (error) throw error;
+      return data as {
+        boq_item_id: string;
+        indirect_pct: number;
+        overhead_pct: number;
+        risk_pct: number;
+        profit_pct: number;
+      }[];
+    },
+  });
+
+  const paRates = useMemo(() => {
+    const direct = new Map<string, number>();
+    paItems.forEach((r) => {
+      direct.set(
+        r.boq_item_id,
+        (direct.get(r.boq_item_id) ?? 0) + Number(r.quantity) * Number(r.unit_price),
+      );
+    });
+    const markupBy = new Map(paMarkups.map((m) => [m.boq_item_id, m]));
+    const selling = new Map<string, number>();
+    direct.forEach((cost, id) => {
+      const m = markupBy.get(id);
+      const indirect = Number(m?.indirect_pct ?? 0);
+      const overhead = Number(m?.overhead_pct ?? 0);
+      const risk = Number(m?.risk_pct ?? 0);
+      const profit = Number(m?.profit_pct ?? 0);
+      const s1 = cost * (1 + indirect / 100);
+      const s2 = s1 * (1 + overhead / 100);
+      const s3 = s2 * (1 + risk / 100);
+      selling.set(id, s3 * (1 + profit / 100));
+    });
+    return { direct, selling };
+  }, [paItems, paMarkups]);
+
+  const sheetTotals = useMemo(() => {
+    const totals: Record<string, number> = {};
+    for (const name of sheetNames) {
+      const rowsForSheet = rows.filter(r => (r.sheet_name || "Sheet1") === name);
+      const builtTree = buildTree(rowsForSheet, paRates.selling);
+      totals[name] = builtTree.reduce((s, n) => s + n.rolledTotal, 0);
+    }
+    return totals;
+  }, [rows, sheetNames, paRates.selling]);
+
   useMemo(() => {
-    if (rows.length && expanded.size === 0) {
-      setExpanded(new Set(rows.filter((r) => r.is_group).map((r) => r.id)));
+    if (activeRows.length && expanded.size === 0) {
+      setExpanded(new Set(activeRows.filter((r) => r.is_group).map((r) => r.id)));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows.length]);
+  }, [activeRows.length]);
 
-  const tree = useMemo(() => buildTree(rows), [rows]);
+  const tree = useMemo(() => buildTree(activeRows, paRates.selling, sheetTotals), [activeRows, paRates.selling, sheetTotals]);
   const grandTotal = tree.reduce((s, n) => s + n.rolledTotal, 0);
-  const itemsCount = rows.filter((r) => !r.is_group).length;
-  const groupsCount = rows.filter((r) => r.is_group).length;
+  const itemsCount = activeRows.filter((r) => !r.is_group).length;
+  const groupsCount = activeRows.filter((r) => r.is_group).length;
+
+  const totalDirectCost = useMemo(() => {
+    return activeRows
+      .filter((r) => !r.is_group)
+      .reduce((sum, r) => {
+        const paDirect = paRates.direct.get(r.id);
+        const unitCost =
+          typeof paDirect === "number" && paDirect > 0
+            ? paDirect
+            : Number(r.material_cost ?? 0) +
+              Number(r.labor_cost ?? 0) +
+              Number(r.equipment_cost ?? 0) +
+              Number(r.subcontractor_cost ?? 0);
+        return sum + unitCost * Number(r.quantity ?? 0);
+      }, 0);
+  }, [activeRows, paRates.direct]);
+
+  const markupMargin = totalDirectCost > 0 ? ((grandTotal - totalDirectCost) / totalDirectCost) * 100 : 0;
 
   const delMut = useMutation({
     mutationFn: async (id: string) => {
@@ -146,7 +310,7 @@ function BoqPage() {
       });
     };
     walk(tree, 0, true);
-    return out.filter((r) => r.visible);
+    return out.filter((r) => r.visible).map(({ node, depth }) => ({ node, depth }));
   }, [tree, expanded]);
 
   if (!projectId) {
@@ -154,12 +318,12 @@ function BoqPage() {
       <div className="p-6">
         <div className="rounded-lg border border-dashed border-border bg-card p-10 text-center">
           <FolderPlus className="mx-auto h-10 w-10 text-muted-foreground opacity-50" />
-          <h2 className="mt-3 text-lg font-semibold">اختر مشروعاً للبدء</h2>
+          <h2 className="mt-3 text-lg font-semibold">{t("boq.selectProjectPrompt", "اختر مشروعاً للبدء")}</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            بنود جدول الكميات تنتمي لمشروع. اختر مشروعاً من القائمة الجانبية أو أنشئ مشروعاً جديداً.
+            {t("boq.selectProjectDesc", "بنود جدول الكميات تنتمي لمشروع. اختر مشروعاً من القائمة الجانبية أو أنشئ مشروعاً جديداً.")}
           </p>
           <Link to="/projects" className="mt-4 inline-block">
-            <Button>الذهاب للمشاريع</Button>
+            <Button>{t("boq.goToProjects", "الذهاب للمشاريع")}</Button>
           </Link>
         </div>
       </div>
@@ -169,10 +333,27 @@ function BoqPage() {
   return (
     <div className="flex h-[calc(100vh-3.5rem)] flex-col p-6">
       <PageHeader
-        title="جدول الكميات (BOQ)"
-        subtitle="هيكل تجميعي هرمي لبنود المشروع — حساب تكلفة الوحدة والإجمالي تلقائياً."
+        title={t("boq.title", "جدول الكميات (BOQ)")}
+        subtitle={t("boq.subtitle", "جدول تفاعلي مشابه لإكسل — أعمدة قابلة للتغيير، خلايا قابلة للتحرير، وسعر الوحدة يفتح تحليل الأسعار.")}
         action={
           <div className="flex flex-wrap gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5" disabled={flatRows.length === 0}>
+                  <Download className="h-4 w-4" />
+                  {t("common.export", "تصدير")}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => exportBoq(project?.name || "BOQ", rows, paRates.selling, project?.excel_headers, project?.excel_pre_headers, "xlsx")}>
+                  {t("common.toExcel", "إلى إكسل (.xlsx)")}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => exportBoq(project?.name || "BOQ", rows, paRates.selling, project?.excel_headers, project?.excel_pre_headers, "csv")}>
+                  {t("common.toCsv", "إلى (.csv)")}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             <ImportExcelDialog />
             <NewBoqDialog isGroup parentOptions={tree} />
             <NewBoqDialog parentOptions={tree} />
@@ -180,172 +361,78 @@ function BoqPage() {
         }
       />
 
-      {/* KPI strip */}
-      <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
-        <KpiCard label="إجمالي المجموعات" value={String(groupsCount)} />
-        <KpiCard label="إجمالي البنود" value={String(itemsCount)} />
-        <KpiCard label="إجمالي تكلفة المشروع" value={fmtSAR(grandTotal)} accent />
-        <KpiCard
-          label="متوسط تكلفة البند"
-          value={itemsCount ? fmtSAR(grandTotal / itemsCount) : "—"}
-        />
+      <div className="mt-2 flex flex-col gap-3">
+        {sheetNames.length > 1 && (
+          <div className="flex w-full md:w-80">
+            <Select value={activeSheet || ""} onValueChange={(v) => setActiveSheet(v)}>
+              <SelectTrigger className="w-full font-bold bg-card border-border/50">
+                <SelectValue placeholder={t("boq.selectSheet", "اختر الصفحة (Sheet)")} />
+              </SelectTrigger>
+              <SelectContent>
+                {sheetNames.map((name) => (
+                  <SelectItem key={name} value={name}>
+                    {name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        <div className="flex flex-wrap items-center justify-between gap-4 bg-muted/30 p-2.5 rounded-lg border border-border/50">
+          <div className="flex flex-wrap items-center gap-6 px-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground uppercase tracking-wider">{t("boq.sellingPrice", "سعر البيع")}:</span>
+              <span className="font-bold tabular-nums text-base text-primary">{fmtSAR(grandTotal, language)}</span>
+            </div>
+            <div className="w-px h-6 bg-border/60 hidden sm:block"></div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground uppercase tracking-wider">{t("common.directCost", "التكلفة المباشرة")}:</span>
+              <span className="font-bold tabular-nums text-sm">{fmtSAR(totalDirectCost, language)}</span>
+            </div>
+            <div className="w-px h-6 bg-border/60 hidden sm:block"></div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground uppercase tracking-wider">{t("boq.markupRate", "هامش الزيادة")}:</span>
+              <span className="font-bold tabular-nums text-sm text-emerald-600 dark:text-emerald-400">{markupMargin.toFixed(2)}%</span>
+            </div>
+            <div className="w-px h-6 bg-border/60 hidden sm:block"></div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground uppercase tracking-wider">{t("common.rows", "الصفوف")}:</span>
+              <span className="font-medium tabular-nums text-sm">{itemsCount + groupsCount}</span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Table */}
-      <div className="mt-5 flex-1 overflow-auto rounded-lg border border-border bg-card">
-        <table className="w-full min-w-[1100px] text-xs tabular-nums">
-          <thead className="sticky top-0 z-10 bg-muted/40 text-[11px] uppercase text-muted-foreground backdrop-blur">
-            <tr className="border-b border-border">
-              <th className="w-[90px] px-3 py-2.5 text-right font-medium">رقم البند</th>
-              <th className="px-3 py-2.5 text-right font-medium">الوصف</th>
-              <th className="w-[60px] px-2 py-2.5 text-center font-medium">الوحدة</th>
-              <th className="w-[80px] px-2 py-2.5 text-left font-medium">الكمية</th>
-              <th className="w-[110px] px-2 py-2.5 text-left font-medium">مواد</th>
-              <th className="w-[110px] px-2 py-2.5 text-left font-medium">عمالة</th>
-              <th className="w-[110px] px-2 py-2.5 text-left font-medium">معدات</th>
-              <th className="w-[110px] px-2 py-2.5 text-left font-medium">مقاول باطن</th>
-              <th className="w-[120px] bg-primary/5 px-2 py-2.5 text-left font-medium text-primary">
-                سعر الوحدة
-              </th>
-              <th className="w-[140px] bg-primary/10 px-2 py-2.5 text-left font-medium text-primary">
-                الإجمالي
-              </th>
-              <th className="w-[80px] px-2 py-2.5 text-center font-medium">إجراءات</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading && (
-              <tr>
-                <td colSpan={11} className="px-4 py-12 text-center text-muted-foreground">
-                  جاري تحميل بنود المشروع…
-                </td>
-              </tr>
-            )}
-            {!isLoading && flatRows.length === 0 && (
-              <tr>
-                <td colSpan={11} className="px-4 py-16 text-center text-muted-foreground">
-                  لا توجد بنود بعد. ابدأ بإضافة مجموعة (مثل «الأعمال الترابية») ثم بنود تحتها.
-                </td>
-              </tr>
-            )}
-            {flatRows.map(({ node, depth }) => {
-              const unitRate =
-                Number(node.material_cost ?? 0) +
-                Number(node.labor_cost ?? 0) +
-                Number(node.equipment_cost ?? 0) +
-                Number(node.subcontractor_cost ?? 0);
-              const isOpen = expanded.has(node.id);
-              return (
-                <tr
-                  key={node.id}
-                  className={cn(
-                    "border-b border-border/60 transition-colors",
-                    node.is_group
-                      ? "bg-secondary/40 font-semibold text-foreground"
-                      : "hover:bg-muted/20",
-                  )}
-                >
-                  <td className="px-3 py-2 font-mono text-[11px] text-muted-foreground">
-                    {node.item_no}
-                  </td>
-                  <td className="px-3 py-2">
-                    <div
-                      className="flex items-center gap-1.5"
-                      style={{ paddingInlineStart: `${depth * 18}px` }}
-                    >
-                      {node.is_group ? (
-                        <button
-                          onClick={() => toggle(node.id)}
-                          className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"
-                        >
-                          {isOpen ? (
-                            <ChevronDown className="h-3.5 w-3.5" />
-                          ) : (
-                            <ChevronLeft className="h-3.5 w-3.5" />
-                          )}
-                        </button>
-                      ) : (
-                        <span className="inline-block w-5" />
-                      )}
-                      <span
-                        className={cn(
-                          "truncate",
-                          node.is_group ? "text-foreground" : "text-foreground/90",
-                        )}
-                      >
-                        {node.description_ar}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-2 py-2 text-center text-muted-foreground">
-                    {node.unit ?? "—"}
-                  </td>
-                  <td className="px-2 py-2 text-left">
-                    {node.is_group ? "—" : fmtNumber(node.quantity, 2)}
-                  </td>
-                  <td className="px-2 py-2 text-left text-muted-foreground">
-                    {node.is_group ? "" : fmtNumber(node.material_cost, 2)}
-                  </td>
-                  <td className="px-2 py-2 text-left text-muted-foreground">
-                    {node.is_group ? "" : fmtNumber(node.labor_cost, 2)}
-                  </td>
-                  <td className="px-2 py-2 text-left text-muted-foreground">
-                    {node.is_group ? "" : fmtNumber(node.equipment_cost, 2)}
-                  </td>
-                  <td className="px-2 py-2 text-left text-muted-foreground">
-                    {node.is_group ? "" : fmtNumber(node.subcontractor_cost, 2)}
-                  </td>
-                  <td className="bg-primary/5 px-2 py-2 text-left font-semibold text-primary">
-                    {node.is_group ? "" : fmtNumber(unitRate, 2)}
-                  </td>
-                  <td className="bg-primary/10 px-2 py-2 text-left font-bold text-primary">
-                    {fmtNumber(node.rolledTotal, 2)}
-                  </td>
-                  <td className="px-2 py-2">
-                    <div className="flex items-center justify-center gap-0.5">
-                      {!node.is_group && (
-                        <Link
-                          to="/price-analysis"
-                          search={{ item: node.id }}
-                          className="inline-flex h-6 items-center justify-center rounded px-1.5 text-muted-foreground hover:bg-muted hover:text-primary"
-                          title="تحليل الأسعار"
-                        >
-                          <TrendingUp className="h-3.5 w-3.5" />
-                        </Link>
-                      )}
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                        onClick={() => {
-                          if (
-                            confirm(
-                              `حذف ${node.is_group ? "المجموعة" : "البند"} «${node.description_ar}»؟`,
-                            )
-                          )
-                            delMut.mutate(node.id);
-                        }}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      <div className="mt-3 flex flex-1 flex-col overflow-hidden">
+        <BoqGrid
+          flatRows={flatRows}
+          expanded={expanded}
+          onToggle={toggle}
+          onDelete={(n) => {
+            if (
+              confirm(`حذف ${n.is_group ? "المجموعة" : "البند"} «${n.description_ar}»؟`)
+            ) {
+              delMut.mutate(n.id);
+            }
+          }}
+          extraHeaders={extraHeaders as any}
+          projectId={projectId}
+          grandTotal={grandTotal}
+        />
       </div>
     </div>
   );
 }
 
-function KpiCard({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+
+function KpiCard({ label, value, accent, className }: { label: string; value: string; accent?: boolean; className?: string }) {
   return (
     <div
       className={cn(
-        "rounded-lg border border-border bg-card px-4 py-3",
+        "rounded-lg border border-border bg-card px-4 py-3 flex flex-col justify-center",
         accent && "border-primary/30 bg-primary/5",
+        className
       )}
     >
       <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</div>
@@ -361,34 +448,6 @@ function KpiCard({ label, value, accent }: { label: string; value: string; accen
   );
 }
 
-function ImportExcelDialog() {
-  const [open, setOpen] = useState(false);
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-1.5">
-          <FileSpreadsheet className="h-4 w-4" />
-          استيراد من Excel
-        </Button>
-      </DialogTrigger>
-      <DialogContent dir="rtl">
-        <DialogHeader>
-          <DialogTitle>استيراد جدول كميات من Excel</DialogTitle>
-          <DialogDescription className="leading-relaxed">
-            ميزة الاستيراد من ملفات Excel/XLSX قيد التطوير وستكون متاحة في المرحلة القادمة. سيتم
-            دعم القوالب التالية: قالب وزارة الإسكان، قالب الهيئة العامة، وقالب مخصّص.
-          </DialogDescription>
-        </DialogHeader>
-        <Badge variant="outline" className="border-primary/30 bg-primary/10 text-primary">
-          متاح في المرحلة التالية
-        </Badge>
-        <DialogFooter>
-          <Button onClick={() => setOpen(false)}>حسناً</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
 
 function NewBoqDialog({
   isGroup = false,

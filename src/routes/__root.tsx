@@ -6,15 +6,29 @@ import {
   useRouter,
   HeadContent,
   Scripts,
+  type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
+import { LanguageProvider, useLanguage } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
 
 function NotFoundComponent() {
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const isAuthCallback =
+        window.location.hash.includes("access_token") ||
+        window.location.search.includes("code=") ||
+        window.location.hash.includes("error=");
+      if (isAuthCallback) {
+        window.location.href = `/auth${window.location.search}${window.location.hash}`;
+      }
+    }
+  }, []);
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
@@ -36,7 +50,7 @@ function NotFoundComponent() {
   );
 }
 
-function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+function ErrorComponent({ error, reset }: ErrorComponentProps) {
   console.error(error);
   const router = useRouter();
   useEffect(() => {
@@ -93,11 +107,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { name: "twitter:title", content: "تقديري — منصة تسعير وإدارة المناقصات" },
-      { name: "description", content: "Saudi Estimator Pro is an enterprise platform for construction cost estimation and tendering." },
-      { property: "og:description", content: "Saudi Estimator Pro is an enterprise platform for construction cost estimation and tendering." },
-      { name: "twitter:description", content: "Saudi Estimator Pro is an enterprise platform for construction cost estimation and tendering." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/05e3c442-5a99-475b-b427-ac48e355325a/id-preview-3ed7533e--4379a275-c031-49e2-8f92-e55e588f95bd.lovable.app-1781339658750.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/05e3c442-5a99-475b-b427-ac48e355325a/id-preview-3ed7533e--4379a275-c031-49e2-8f92-e55e588f95bd.lovable.app-1781339658750.png" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
@@ -144,9 +153,16 @@ function RootComponent() {
   }, [router, queryClient]);
 
   return (
+    <LanguageProvider>
     <QueryClientProvider client={queryClient}>
       <Outlet />
-      <Toaster richColors position="top-center" dir="rtl" />
+      <LanguageToaster />
     </QueryClientProvider>
+    </LanguageProvider>
   );
+}
+
+function LanguageToaster() {
+  const { direction } = useLanguage();
+  return <Toaster richColors position="top-center" dir={direction} />;
 }

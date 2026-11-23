@@ -10,14 +10,16 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.18"
   }
   public: {
     Tables: {
       boq_items: {
         Row: {
+          cell_styles: Json | null
           created_at: string
           description_ar: string
+          description_en: string | null
           equipment_cost: number | null
           id: string
           is_group: boolean
@@ -28,6 +30,8 @@ export type Database = {
           parent_id: string | null
           project_id: string | null
           quantity: number | null
+          raw_row: Json | null
+          sheet_name: string | null
           sort_order: number
           subcontractor_cost: number | null
           unit: string | null
@@ -35,8 +39,10 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          cell_styles?: Json | null
           created_at?: string
           description_ar: string
+          description_en?: string | null
           equipment_cost?: number | null
           id?: string
           is_group?: boolean
@@ -47,6 +53,8 @@ export type Database = {
           parent_id?: string | null
           project_id?: string | null
           quantity?: number | null
+          raw_row?: Json | null
+          sheet_name?: string | null
           sort_order?: number
           subcontractor_cost?: number | null
           unit?: string | null
@@ -54,8 +62,10 @@ export type Database = {
           user_id: string
         }
         Update: {
+          cell_styles?: Json | null
           created_at?: string
           description_ar?: string
+          description_en?: string | null
           equipment_cost?: number | null
           id?: string
           is_group?: boolean
@@ -66,6 +76,8 @@ export type Database = {
           parent_id?: string | null
           project_id?: string | null
           quantity?: number | null
+          raw_row?: Json | null
+          sheet_name?: string | null
           sort_order?: number
           subcontractor_cost?: number | null
           unit?: string | null
@@ -92,39 +104,48 @@ export type Database = {
       price_analysis_items: {
         Row: {
           boq_item_id: string
+          cell_styles: Json | null
           created_at: string
           description_ar: string
+          description_en: string | null
           id: string
           project_id: string | null
           quantity: number
           resource_id: string | null
           resource_type: Database["public"]["Enums"]["resource_type"]
+          sort_order: number
           unit: string
           unit_price: number
           user_id: string
         }
         Insert: {
           boq_item_id: string
+          cell_styles?: Json | null
           created_at?: string
           description_ar: string
+          description_en?: string | null
           id?: string
           project_id?: string | null
           quantity?: number
           resource_id?: string | null
           resource_type: Database["public"]["Enums"]["resource_type"]
+          sort_order?: number
           unit: string
           unit_price?: number
           user_id: string
         }
         Update: {
           boq_item_id?: string
+          cell_styles?: Json | null
           created_at?: string
           description_ar?: string
+          description_en?: string | null
           id?: string
           project_id?: string | null
           quantity?: number
           resource_id?: string | null
           resource_type?: Database["public"]["Enums"]["resource_type"]
+          sort_order?: number
           unit?: string
           unit_price?: number
           user_id?: string
@@ -256,6 +277,9 @@ export type Database = {
           duration: string | null
           end_date: string | null
           estimated_value: number | null
+          excel_headers: Json | null
+          excel_pre_headers: Json | null
+          excel_sheets_order: string[] | null
           financial_requirements: string | null
           id: string
           last_rfi_date: string | null
@@ -284,6 +308,9 @@ export type Database = {
           duration?: string | null
           end_date?: string | null
           estimated_value?: number | null
+          excel_headers?: Json | null
+          excel_pre_headers?: Json | null
+          excel_sheets_order?: string[] | null
           financial_requirements?: string | null
           id?: string
           last_rfi_date?: string | null
@@ -312,6 +339,9 @@ export type Database = {
           duration?: string | null
           end_date?: string | null
           estimated_value?: number | null
+          excel_headers?: Json | null
+          excel_pre_headers?: Json | null
+          excel_sheets_order?: string[] | null
           financial_requirements?: string | null
           id?: string
           last_rfi_date?: string | null
@@ -336,6 +366,7 @@ export type Database = {
         Row: {
           code: string | null
           created_at: string
+          division: string | null
           id: string
           name_ar: string
           notes: string | null
@@ -349,6 +380,7 @@ export type Database = {
         Insert: {
           code?: string | null
           created_at?: string
+          division?: string | null
           id?: string
           name_ar: string
           notes?: string | null
@@ -362,6 +394,7 @@ export type Database = {
         Update: {
           code?: string | null
           created_at?: string
+          division?: string | null
           id?: string
           name_ar?: string
           notes?: string | null
@@ -415,7 +448,6 @@ export type Database = {
         }
         Returns: boolean
       }
-      seed_demo_data: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "estimation_manager" | "estimator" | "viewer"
@@ -432,7 +464,7 @@ export type Database = {
         | "construction_complete"
         | "finished"
         | "closed"
-      resource_type: "material" | "labor" | "equipment"
+      resource_type: "material" | "labor" | "equipment" | "subcontractor"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -448,12 +480,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -477,11 +509,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -502,11 +534,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -527,11 +559,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -544,11 +576,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -575,7 +607,7 @@ export const Constants = {
         "finished",
         "closed",
       ],
-      resource_type: ["material", "labor", "equipment"],
+      resource_type: ["material", "labor", "equipment", "subcontractor"],
     },
   },
 } as const
