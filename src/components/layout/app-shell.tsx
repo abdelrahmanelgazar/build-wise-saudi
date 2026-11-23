@@ -40,10 +40,10 @@ const NAV: NavItem[] = [
   { to: "/boq", label: "جدول الكميات", icon: Calculator, enabled: true },
   { to: "/price-analysis", label: "تحليل الأسعار", icon: TrendingUp, enabled: true },
   { to: "/resources", label: "مكتبة البيانات", icon: Database, enabled: true },
-  { to: "/financial", label: "المراجعة المالية", icon: ShieldCheck, enabled: false },
+  { to: "/financial", label: "المراجعة المالية", icon: ShieldCheck, enabled: true },
   { to: "/reports", label: "التقارير", icon: BarChart3, enabled: true },
-  { to: "/ai-assistant", label: "مساعد الذكاء الاصطناعي", icon: Sparkles, enabled: false },
-  { to: "/settings", label: "الإعدادات والصلاحيات", icon: Settings, enabled: false },
+  { to: "/ai-assistant", label: "مساعد الذكاء الاصطناعي", icon: Sparkles, enabled: true },
+  { to: "/settings", label: "الإعدادات والصلاحيات", icon: Settings, enabled: true },
 ];
 
 function ProjectSwitcher() {
